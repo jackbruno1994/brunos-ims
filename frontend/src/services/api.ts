@@ -60,6 +60,76 @@ export const apiService = {
     return response.data;
   },
 
+  // Recipe endpoints
+  getRecipes: async (filters?: {
+    category?: string;
+    published?: boolean;
+    search?: string;
+    restaurantId?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.published !== undefined) params.append('published', filters.published.toString());
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.restaurantId) params.append('restaurantId', filters.restaurantId);
+    
+    const response = await api.get(`/recipes?${params.toString()}`);
+    return response.data;
+  },
+
+  getRecipe: async (id: string) => {
+    const response = await api.get(`/recipes/${id}`);
+    return response.data;
+  },
+
+  createRecipe: async (recipeData: any) => {
+    const response = await api.post('/recipes', recipeData);
+    return response.data;
+  },
+
+  updateRecipe: async (id: string, recipeData: any) => {
+    const response = await api.put(`/recipes/${id}`, recipeData);
+    return response.data;
+  },
+
+  deleteRecipe: async (id: string) => {
+    const response = await api.delete(`/recipes/${id}`);
+    return response.data;
+  },
+
+  getRecipeCategories: async () => {
+    const response = await api.get('/recipes/categories');
+    return response.data;
+  },
+
+  searchRecipes: async (query: {
+    q?: string;
+    category?: string;
+    difficulty?: string;
+    maxPreparationTime?: number;
+    maxCookingTime?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (query.q) params.append('q', query.q);
+    if (query.category) params.append('category', query.category);
+    if (query.difficulty) params.append('difficulty', query.difficulty);
+    if (query.maxPreparationTime) params.append('maxPreparationTime', query.maxPreparationTime.toString());
+    if (query.maxCookingTime) params.append('maxCookingTime', query.maxCookingTime.toString());
+    
+    const response = await api.get(`/recipes/search?${params.toString()}`);
+    return response.data;
+  },
+
+  getRecipeCost: async (id: string) => {
+    const response = await api.get(`/recipes/${id}/cost`);
+    return response.data;
+  },
+
+  addMediaToRecipe: async (id: string, mediaData: any) => {
+    const response = await api.post(`/recipes/${id}/media`, mediaData);
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/health');
