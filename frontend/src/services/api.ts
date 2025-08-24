@@ -60,6 +60,66 @@ export const apiService = {
     return response.data;
   },
 
+  // Recipe endpoints
+  getRecipes: async (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    difficulty?: string;
+    restaurantId?: string;
+  }) => {
+    const response = await api.get('/recipes', { params });
+    return response.data;
+  },
+
+  getRecipeById: async (id: string) => {
+    const response = await api.get(`/recipes/${id}`);
+    return response.data;
+  },
+
+  createRecipe: async (recipeData: any) => {
+    const response = await api.post('/recipes', recipeData);
+    return response.data;
+  },
+
+  updateRecipe: async (id: string, recipeData: any) => {
+    const response = await api.put(`/recipes/${id}`, recipeData);
+    return response.data;
+  },
+
+  deleteRecipe: async (id: string, permanent = false) => {
+    const response = await api.delete(`/recipes/${id}`, { 
+      params: { permanent } 
+    });
+    return response.data;
+  },
+
+  searchRecipes: async (params: {
+    q?: string;
+    category?: string;
+    difficulty?: string;
+    maxTime?: number;
+    ingredients?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/recipes/search', { params });
+    return response.data;
+  },
+
+  getRecipeCategories: async (restaurantId?: string) => {
+    const response = await api.get('/recipes/categories', {
+      params: restaurantId ? { restaurantId } : {}
+    });
+    return response.data;
+  },
+
+  createRecipeCategory: async (categoryData: any) => {
+    const response = await api.post('/recipes/categories', categoryData);
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/health');
