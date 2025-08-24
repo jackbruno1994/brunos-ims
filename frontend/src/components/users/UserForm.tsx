@@ -1,7 +1,5 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { userService, roleService } from '../../services/userService';
@@ -15,48 +13,19 @@ interface UserFormProps {
   onSuccess: () => void;
 }
 
-// Validation schema
-const createUserSchema = yup.object({
-  username: yup.string().required('Username is required').min(3, 'Username must be at least 3 characters'),
-  email: yup.string().required('Email is required').email('Invalid email format'),
-  password: yup.string().required('Password is required').min(8, 'Password must be at least 8 characters'),
-  role: yup.object({
-    type: yup.string().required('Role is required').oneOf(['admin', 'manager', 'staff']),
-    permissions: yup.array().of(yup.string()).required()
-  }),
-  restaurantId: yup.string().required('Restaurant is required'),
-  country: yup.string().required('Country is required')
-});
-
-const updateUserSchema = yup.object({
-  username: yup.string().required('Username is required').min(3, 'Username must be at least 3 characters'),
-  email: yup.string().required('Email is required').email('Invalid email format'),
-  role: yup.object({
-    type: yup.string().required('Role is required').oneOf(['admin', 'manager', 'staff']),
-    permissions: yup.array().of(yup.string()).required()
-  }),
-  restaurantId: yup.string().required('Restaurant is required'),
-  country: yup.string().required('Country is required'),
-  status: yup.string().oneOf(['active', 'inactive'])
-});
-
 const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSuccess }) => {
   const { user: currentUser, hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = React.useState(false);
   const isEditing = !!user;
 
-  const validationSchema = isEditing ? updateUserSchema : createUserSchema;
-
   const {
     control,
     handleSubmit,
     formState: { errors, isValid },
     watch,
-    setValue,
-    reset
+    setValue
   } = useForm({
-    resolver: yupResolver(validationSchema),
     mode: 'onChange',
     defaultValues: isEditing ? {
       username: user.username,
@@ -118,13 +87,40 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSuccess }) => {
   }, [selectedRole, rolesData, setValue]);
 
   const onSubmit = (data: any) => {
+    // Basic validation
+    if (!data.username || !data.email || !data.role.type || !data.restaurantId || !data.country) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!isEditing && !data.password) {
+      toast.error('Password is required for new users');
+      return;
+    }
+
     if (isEditing && user) {
+      const updateData: UpdateUserRequest = {
+        username: data.username,
+        email: data.email,
+        role: data.role,
+        restaurantId: data.restaurantId,
+        country: data.country,
+        status: data.status
+      };
       updateUserMutation.mutate({
         id: user._id,
-        data: data as UpdateUserRequest
+        data: updateData
       });
     } else {
-      createUserMutation.mutate(data as CreateUserRequest);
+      const createData: CreateUserRequest = {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+        restaurantId: data.restaurantId,
+        country: data.country
+      };
+      createUserMutation.mutate(createData);
     }
   };
 
@@ -345,6 +341,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSuccess }) => {
                 render={({ field }) => (
                   <select
                     {...field}
+                    value={field.value || 'active'}
                     id="status"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >

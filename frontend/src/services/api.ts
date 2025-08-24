@@ -35,7 +35,7 @@ api.interceptors.response.use(
       toast.error('Session expired. Please login again.');
     } else if (error.response?.status === 403) {
       toast.error('Access denied. Insufficient permissions.');
-    } else if (error.response?.status >= 500) {
+    } else if (error.response && error.response.status >= 500) {
       toast.error('Server error. Please try again later.');
     } else {
       toast.error(errorMessage);

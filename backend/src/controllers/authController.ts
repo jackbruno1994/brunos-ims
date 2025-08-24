@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { body } from 'express-validator';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { Activity } from '../models/Activity';
 import { AuthRequest } from '../middleware/auth';
@@ -22,10 +22,14 @@ export const registerValidation = [
 ];
 
 // Generate JWT token
-const generateToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, { 
+const generateToken = (userId: string): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is not defined');
+  }
+  return jwt.sign({ userId }, secret, { 
     expiresIn: process.env.JWT_EXPIRES_IN || '7d' 
-  });
+  } as jwt.SignOptions);
 };
 
 // Login

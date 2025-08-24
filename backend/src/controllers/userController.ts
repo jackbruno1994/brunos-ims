@@ -97,7 +97,7 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
     if (restaurantId) filter.restaurantId = restaurantId;
 
     // For non-admin users, limit to their restaurant
-    if (req.user?.role.type !== 'admin') {
+    if (req.user?.role.type !== 'admin' && req.user) {
       filter.restaurantId = req.user.restaurantId;
     }
 
@@ -143,7 +143,7 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
     }
 
     // Non-admin users can only view users from their restaurant
-    if (req.user?.role.type !== 'admin' && 
+    if (req.user?.role.type !== 'admin' && req.user &&
         user.restaurantId.toString() !== req.user.restaurantId.toString()) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -170,7 +170,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     }
 
     // Non-admin users can only update users from their restaurant
-    if (req.user?.role.type !== 'admin' && 
+    if (req.user?.role.type !== 'admin' && req.user &&
         user.restaurantId.toString() !== req.user.restaurantId.toString()) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -205,7 +205,7 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     }
 
     // Non-admin users can only delete users from their restaurant
-    if (req.user?.role.type !== 'admin' && 
+    if (req.user?.role.type !== 'admin' && req.user &&
         user.restaurantId.toString() !== req.user.restaurantId.toString()) {
       return res.status(403).json({ error: 'Access denied' });
     }
