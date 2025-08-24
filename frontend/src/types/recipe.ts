@@ -1,47 +1,5 @@
-// Example data models/interfaces for Bruno's IMS
+// Frontend Recipe Types - mirrors backend models
 
-export interface Restaurant {
-  id: string;
-  name: string;
-  location: string;
-  country: string;
-  address: string;
-  phone: string;
-  email: string;
-  managerId: string;
-  status: 'active' | 'inactive' | 'maintenance';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: 'admin' | 'manager' | 'staff';
-  restaurantId?: string;
-  country: string;
-  status: 'active' | 'inactive';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  category: string;
-  restaurantId: string;
-  availability: boolean;
-  allergens?: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Recipe Management Models
 export interface Recipe {
   id: string;
   name: string;
@@ -172,4 +130,12 @@ export interface RecipeCostAnalysis {
   profitMargin: number;
   suggestedPrice: number;
   lastUpdated: Date;
+}
+
+export interface RecipeFilters {
+  restaurantId?: string;
+  category?: string;
+  status?: string;
+  difficulty?: string;
+  searchTerm?: string;
 }
