@@ -32,3 +32,12 @@ export class RestaurantController {
     }
   }
 }
+
+// Export new advanced controllers
+export { 
+  OrderProcessingController, 
+  AnalyticsController, 
+  SearchController 
+} from './orderProcessingController';
+export { CachingController } from './cachingController';
+export { OfflineSyncController } from './offlineSyncController';

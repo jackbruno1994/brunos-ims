@@ -3,12 +3,21 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
+import { CachingService } from './services/cachingService';
 
 // Load environment variables
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
+
+// Initialize caching service
+CachingService.initialize({
+  maxSize: 1000,
+  defaultTTL: 3600,
+  cleanupInterval: 300
+});
 
 // Middleware
 app.use(helmet());
@@ -26,11 +35,22 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
+// API routes
+app.use('/api', routes);
+
+// API info route
 app.get('/api', (req: Request, res: Response) => {
   res.status(200).json({
     message: 'Welcome to Bruno\'s IMS API',
-    version: '1.0.0'
+    version: '1.0.0',
+    features: [
+      'Smart Prep-List Generator',
+      'Order Processing Optimizations',
+      'Advanced Analytics',
+      'Smart Search with Learning',
+      'Offline-First Architecture',
+      'Intelligent Caching'
+    ]
   });
 });
 
@@ -55,6 +75,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
+  console.log(`🧠 Advanced Order Processing System enabled`);
 });
 
 export default app;
