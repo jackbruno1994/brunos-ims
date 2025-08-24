@@ -11,7 +11,7 @@ const users: User[] = [
     firstName: 'Admin',
     lastName: 'User',
     email: 'admin@brunosims.com',
-    password: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', // secret
+    password: '$2b$10$7jdBffix/SEtqtLhQy9dJecwkZVNdLvhiIXl73DTVTcF6FE.skPja', // secret
     role: 'admin',
     country: 'US',
     status: 'active',
@@ -24,7 +24,7 @@ const users: User[] = [
     firstName: 'Chef',
     lastName: 'Mario',
     email: 'chef@brunosims.com',
-    password: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', // secret
+    password: '$2b$10$7jdBffix/SEtqtLhQy9dJecwkZVNdLvhiIXl73DTVTcF6FE.skPja', // secret
     role: 'chef',
     restaurantId: '1',
     country: 'US',
@@ -38,7 +38,7 @@ const users: User[] = [
     firstName: 'Line',
     lastName: 'Cook',
     email: 'linecook@brunosims.com',
-    password: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', // secret
+    password: '$2b$10$7jdBffix/SEtqtLhQy9dJecwkZVNdLvhiIXl73DTVTcF6FE.skPja', // secret
     role: 'linecook',
     restaurantId: '1',
     country: 'US',
@@ -52,7 +52,7 @@ const users: User[] = [
     firstName: 'Manager',
     lastName: 'Smith',
     email: 'manager@brunosims.com',
-    password: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', // secret
+    password: '$2b$10$7jdBffix/SEtqtLhQy9dJecwkZVNdLvhiIXl73DTVTcF6FE.skPja', // secret
     role: 'manager',
     restaurantId: '1',
     country: 'US',
