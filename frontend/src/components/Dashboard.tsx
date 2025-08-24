@@ -28,8 +28,8 @@ const Dashboard: React.FC = () => {
         <aside className="sidebar">
           <nav>
             <ul>
-              <li><a href="#dashboard">Dashboard</a></li>
-              <li><a href="#products">Products</a></li>
+              <li><a href="/dashboard">Dashboard</a></li>
+              <li><a href="/products">Products</a></li>
               <li><a href="#categories">Categories</a></li>
               <li><a href="#orders">Orders</a></li>
               <li><a href="#inventory">Inventory</a></li>
@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
             <div className="action-card">
               <h3>Quick Actions</h3>
               <div className="action-buttons">
-                <button className="action-btn">Add Product</button>
+                <a href="/products" className="action-btn">Add Product</a>
                 <button className="action-btn">Create Order</button>
                 <button className="action-btn">Check Inventory</button>
                 <button className="action-btn">View Reports</button>

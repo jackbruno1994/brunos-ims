@@ -99,7 +99,10 @@ export interface ApiResponse<T> {
 export interface PaginationResponse<T> {
   success: boolean;
   data: {
-    [key: string]: T[];
+    products?: T[];
+    categories?: T[];
+    users?: T[];
+    orders?: T[];
     pagination: {
       page: number;
       limit: number;
