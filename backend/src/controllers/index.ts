@@ -32,3 +32,6 @@ export class RestaurantController {
     }
   }
 }
+
+// Export RBAC controller
+export { RBACController } from './rbac';
