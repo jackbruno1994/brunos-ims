@@ -32,3 +32,6 @@ export class RestaurantController {
     }
   }
 }
+
+export { RecipeController } from './recipe';
+export { AuthController } from './auth';

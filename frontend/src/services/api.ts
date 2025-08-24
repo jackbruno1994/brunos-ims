@@ -38,6 +38,69 @@ api.interceptors.response.use(
 );
 
 export const apiService = {
+  // Authentication endpoints
+  login: async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password });
+    return response.data;
+  },
+
+  register: async (userData: any) => {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+  },
+
+  getProfile: async () => {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  },
+
+  logout: async () => {
+    const response = await api.post('/auth/logout');
+    return response.data;
+  },
+
+  // Recipe endpoints
+  getRecipes: async () => {
+    const response = await api.get('/recipes');
+    return response.data.data || [];
+  },
+
+  getRecipeById: async (id: string) => {
+    const response = await api.get(`/recipes/${id}`);
+    return response.data.data;
+  },
+
+  createRecipe: async (recipeData: any) => {
+    const response = await api.post('/recipes', recipeData);
+    return response.data;
+  },
+
+  updateRecipe: async (id: string, recipeData: any) => {
+    const response = await api.put(`/recipes/${id}`, recipeData);
+    return response.data;
+  },
+
+  deleteRecipe: async (id: string) => {
+    const response = await api.delete(`/recipes/${id}`);
+    return response.data;
+  },
+
+  assignRecipe: async (id: string, userIds: string[]) => {
+    const response = await api.post(`/recipes/${id}/assign`, { userIds });
+    return response.data;
+  },
+
+  // Prep list endpoints
+  getTodaysPrepList: async () => {
+    const response = await api.get('/prep-list/today');
+    return response.data.data;
+  },
+
+  updatePrepListItem: async (prepListId: string, itemId: string, data: any) => {
+    const response = await api.put(`/prep-list/${prepListId}/items/${itemId}`, data);
+    return response.data;
+  },
+
   // Restaurant endpoints
   getRestaurants: async () => {
     const response = await api.get('/restaurants');
