@@ -1,47 +1,5 @@
-// Example data models/interfaces for Bruno's IMS
+// Recipe Management Types (frontend)
 
-export interface Restaurant {
-  id: string;
-  name: string;
-  location: string;
-  country: string;
-  address: string;
-  phone: string;
-  email: string;
-  managerId: string;
-  status: 'active' | 'inactive' | 'maintenance';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: 'admin' | 'manager' | 'staff';
-  restaurantId?: string;
-  country: string;
-  status: 'active' | 'inactive';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  category: string;
-  restaurantId: string;
-  availability: boolean;
-  allergens?: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Recipe Management Models
 export interface RecipeIngredient {
   id: string;
   name: string;
@@ -110,4 +68,31 @@ export interface RecipeCategory {
   restaurantId?: string; // null for global categories
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface RecipeFilters {
+  category?: string;
+  search?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  tags?: string[];
+  maxTime?: number;
+  ingredients?: string[];
+}
+
+export interface RecipeFormData {
+  name: string;
+  description: string;
+  category: string;
+  cuisine?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  servings: number;
+  prepTime: number;
+  cookTime: number;
+  ingredients: Omit<RecipeIngredient, 'id'>[];
+  steps: Omit<RecipeStep, 'id'>[];
+  nutritionalInfo?: NutritionalInfo;
+  tags: string[];
+  allergens: string[];
+  imageUrl?: string;
+  isPublic: boolean;
 }
