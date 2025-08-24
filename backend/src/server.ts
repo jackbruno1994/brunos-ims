@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Import routes
+import routes from './routes';
+
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
 
@@ -26,13 +29,8 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-app.get('/api', (req: Request, res: Response) => {
-  res.status(200).json({
-    message: 'Welcome to Bruno\'s IMS API',
-    version: '1.0.0'
-  });
-});
+// API routes
+app.use('/api', routes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
