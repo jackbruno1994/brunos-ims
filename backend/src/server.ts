@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -26,13 +27,8 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-app.get('/api', (req: Request, res: Response) => {
-  res.status(200).json({
-    message: 'Welcome to Bruno\'s IMS API',
-    version: '1.0.0'
-  });
-});
+// API routes
+app.use('/api', routes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
