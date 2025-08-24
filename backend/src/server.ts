@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +18,10 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Basic health check route
+// API routes
+app.use('/api', routes);
+
+// Basic health check route (duplicate for direct access)
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'OK',
@@ -26,11 +30,18 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
+// API info route
 app.get('/api', (req: Request, res: Response) => {
   res.status(200).json({
     message: 'Welcome to Bruno\'s IMS API',
-    version: '1.0.0'
+    version: '1.0.0',
+    endpoints: {
+      restaurants: '/api/restaurants',
+      recipes: '/api/recipes',
+      recipeCategories: '/api/recipes/categories',
+      recipeSearch: '/api/recipes/search',
+      health: '/health'
+    }
   });
 });
 
@@ -55,6 +66,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
+  console.log(`📍 Recipes API: http://localhost:${PORT}/api/recipes`);
 });
 
 export default app;
