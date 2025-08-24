@@ -20,13 +20,14 @@ export class OrderService {
     return orders.find(order => order.id === id) || null;
   }
 
-  static createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'totalAmount'>): Order {
+  static createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'totalAmount' | 'status'> & { status?: Order['status'] }): Order {
     // Calculate total amount
     const totalAmount = orderData.items.reduce((sum, item) => sum + item.totalPrice, 0);
     
     const newOrder: Order = {
       ...orderData,
       id: nextOrderId.toString(),
+      status: orderData.status || 'pending', // Default to pending if no status provided
       totalAmount,
       createdAt: new Date(),
       updatedAt: new Date()
