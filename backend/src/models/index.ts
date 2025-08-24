@@ -1,5 +1,9 @@
-// Example data models/interfaces for Bruno's IMS
+// Data models/interfaces for Bruno's IMS
 
+// Import RBAC types
+export * from '../types/rbac';
+
+// Legacy/Original models (updated to work with RBAC)
 export interface Restaurant {
   id: string;
   name: string;
@@ -14,12 +18,13 @@ export interface Restaurant {
   updatedAt: Date;
 }
 
-export interface User {
+// Updated User interface to work with RBAC (legacy compatibility)
+export interface LegacyUser {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  role: 'admin' | 'manager' | 'staff';
+  role: 'admin' | 'manager' | 'staff'; // This will be deprecated in favor of RBAC roles
   restaurantId?: string;
   country: string;
   status: 'active' | 'inactive';
