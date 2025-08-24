@@ -40,3 +40,27 @@ export interface MenuItem {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface OrderItem {
+  id: string;
+  menuItemId: string;
+  menuItemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface Order {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  restaurantId: string;
+  items: OrderItem[];
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  totalAmount: number;
+  currency: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
