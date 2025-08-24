@@ -1,0 +1,25 @@
+{
+  "name": "brunos-ims",
+  "version": "1.0.0",
+  "description": "Integrated Management System for multi-country restaurant groups",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "concurrently \"cd backend && npm test\" \"cd frontend && npm test\"",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "restaurant",
+    "inventory",
+    "management",
+    "full-stack"
+  ],
+  "author": "Bruno's IMS Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
