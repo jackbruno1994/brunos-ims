@@ -5,19 +5,18 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
-import { connectDB } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 
-// Routes
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import roleRoutes from './routes/roles';
+// Demo routes with mock data
+import authDemoRoutes from './routes/authDemo';
+import userDemoRoutes from './routes/userDemo';
+import roleDemoRoutes from './routes/roleDemo';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 
 // Security middleware
 app.use(helmet());
@@ -57,14 +56,15 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    mode: 'DEMO'
   });
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/roles', roleRoutes);
+// Demo API routes
+app.use('/api/auth', authDemoRoutes);
+app.use('/api/users', userDemoRoutes);
+app.use('/api/roles', roleDemoRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -77,13 +77,14 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    // Connect to database
-    await connectDB();
+    console.log('Starting demo server without database...');
     
     // Start server
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`🚀 Demo server running on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔑 Demo login: admin@brunos-restaurant.com / admin123456`);
+      console.log(`⚠️  Note: This is a demo mode with mock data. Write operations are disabled.`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

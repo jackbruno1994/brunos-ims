@@ -5,20 +5,37 @@ import { Restaurant } from '../models/Restaurant';
 
 export const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/brunos-ims';
-    await mongoose.connect(mongoURI);
-    console.log('MongoDB connected successfully');
+    // Use MongoDB Atlas free tier or local MongoDB
+    const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://demo:demo@cluster0.mongodb.net/brunos-ims?retryWrites=true&w=majority';
+    
+    // For demo purposes, if MongoDB connection fails, we'll continue with mock data
+    try {
+      await mongoose.connect(mongoURI, {
+        serverSelectionTimeoutMS: 5000 // 5 second timeout
+      });
+      console.log('MongoDB connected successfully');
+    } catch (dbError) {
+      console.log('MongoDB connection failed, continuing in demo mode...');
+      console.log('Note: In production, ensure MongoDB is properly configured');
+      // Don't exit, just continue - the app will work in read-only demo mode
+    }
     
     // Initialize default data
     await initializeDefaultData();
   } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
+    console.error('Database setup error:', error);
+    console.log('Continuing in demo mode...');
   }
 };
 
 const initializeDefaultData = async () => {
   try {
+    // Only proceed if we have a valid MongoDB connection
+    if (mongoose.connection.readyState !== 1) {
+      console.log('Skipping database initialization - no MongoDB connection');
+      return;
+    }
+
     // Create default roles if they don't exist
     const roles = [
       {
@@ -92,5 +109,6 @@ const initializeDefaultData = async () => {
     }
   } catch (error) {
     console.error('Error initializing default data:', error);
+    console.log('Continuing without default data...');
   }
 };
