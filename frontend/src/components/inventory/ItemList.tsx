@@ -1,63 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { Item } from '../../types/inventory';
 
 const ItemList: React.FC = () => {
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(false);
-
-    const columns = [
-        {
-            title: 'SKU',
-            dataIndex: 'sku',
-            key: 'sku',
-            sorter: (a: Item, b: Item) => a.sku.localeCompare(b.sku),
-        },
-        {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-            sorter: (a: Item, b: Item) => a.name.localeCompare(b.name),
-        },
-        {
-            title: 'Category',
-            dataIndex: 'category',
-            key: 'category',
-            filters: [
-                // Will be populated dynamically from available categories
-            ],
-            onFilter: (value: string, record: Item) => record.category === value,
-        },
-        {
-            title: 'Current Stock',
-            dataIndex: 'currentStock',
-            key: 'currentStock',
-            render: (stock: number, record: Item) => (
-                <span style={{ color: stock <= record.minStock ? 'red' : 'inherit' }}>
-                    {stock}
-                </span>
-            ),
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (text: string, record: Item) => (
-                <Space>
-                    <Button 
-                        icon={<EditOutlined />} 
-                        onClick={() => handleEdit(record)}
-                    />
-                    <Button 
-                        icon={<DeleteOutlined />} 
-                        danger 
-                        onClick={() => handleDelete(record.id)}
-                    />
-                </Space>
-            ),
-        },
-    ];
 
     useEffect(() => {
         fetchItems();
@@ -69,7 +16,7 @@ const ItemList: React.FC = () => {
             const response = await axios.get('/api/inventory/items');
             setItems(response.data);
         } catch (error) {
-            message.error('Failed to fetch items');
+            console.error('Failed to fetch items', error);
         } finally {
             setLoading(false);
         }
@@ -77,40 +24,110 @@ const ItemList: React.FC = () => {
 
     const handleEdit = (item: Item) => {
         // Implementation for edit functionality
+        console.log('Edit item:', item);
     };
 
     const handleDelete = async (id: string) => {
         try {
             await axios.delete(`/api/inventory/items/${id}`);
-            message.success('Item deleted successfully');
+            console.log('Item deleted successfully');
             fetchItems();
         } catch (error) {
-            message.error('Failed to delete item');
+            console.error('Failed to delete item', error);
         }
     };
 
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
     return (
-        <div>
-            <div style={{ marginBottom: 16 }}>
-                <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />}
-                    onClick={() => {/* Implementation for add new item */}}
+        <div style={{ padding: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
+                <button 
+                    style={{
+                        backgroundColor: '#1890ff',
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                        console.log('Add new item clicked');
+                    }}
                 >
-                    Add New Item
-                </Button>
+                    + Add New Item
+                </button>
             </div>
-            <Table 
-                columns={columns} 
-                dataSource={items}
-                loading={loading}
-                rowKey="id"
-                pagination={{
-                    defaultPageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Total ${total} items`
-                }}
-            />
+            
+            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
+                <thead>
+                    <tr style={{ backgroundColor: '#f5f5f5' }}>
+                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>SKU</th>
+                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Name</th>
+                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Category</th>
+                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Current Stock</th>
+                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items.map((item) => (
+                        <tr key={item.id}>
+                            <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{item.sku}</td>
+                            <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{item.name}</td>
+                            <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>{item.category}</td>
+                            <td 
+                                style={{ 
+                                    padding: '12px', 
+                                    borderBottom: '1px solid #ddd',
+                                    color: item.currentStock <= item.minStock ? 'red' : 'inherit'
+                                }}
+                            >
+                                {item.currentStock}
+                            </td>
+                            <td style={{ padding: '12px', borderBottom: '1px solid #ddd' }}>
+                                <button 
+                                    style={{
+                                        marginRight: '8px',
+                                        padding: '4px 8px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => handleEdit(item)}
+                                >
+                                    Edit
+                                </button>
+                                <button 
+                                    style={{
+                                        padding: '4px 8px',
+                                        border: '1px solid #ff4d4f',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        backgroundColor: '#ff4d4f',
+                                        color: 'white'
+                                    }}
+                                    onClick={() => handleDelete(item.id)}
+                                >
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                    {items.length === 0 && (
+                        <tr>
+                            <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                                No items found
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+            
+            <div style={{ marginTop: '16px', textAlign: 'center', color: '#666' }}>
+                Total {items.length} items
+            </div>
         </div>
     );
 };
