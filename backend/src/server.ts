@@ -18,19 +18,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Basic health check route
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'OK',
-    message: 'Bruno\'s IMS Backend API is running',
-    timestamp: new Date().toISOString()
+    message: "Bruno's IMS Backend API is running",
+    timestamp: new Date().toISOString(),
   });
 });
 
 // API routes will be added here
-app.get('/api', (req: Request, res: Response) => {
+app.get('/api', (_req: Request, res: Response) => {
   res.status(200).json({
-    message: 'Welcome to Bruno\'s IMS API',
-    version: '1.0.0'
+    message: "Welcome to Bruno's IMS API",
+    version: '1.0.0',
   });
 });
 
@@ -38,16 +38,16 @@ app.get('/api', (req: Request, res: Response) => {
 app.use('*', (req: Request, res: Response) => {
   res.status(404).json({
     error: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
   });
 });
 
 // Error handler
-app.use((err: Error, req: Request, res: Response, next: any) => {
+app.use((err: Error, _req: Request, res: Response, _next: any) => {
   console.error(err.stack);
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
   });
 });
 

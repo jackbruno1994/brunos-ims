@@ -1,4 +1,5 @@
 # Bruno's IMS
+
 Integrated Management System for multi-country restaurant groups
 
 ## Overview
@@ -16,6 +17,7 @@ Bruno's IMS is a comprehensive management system designed to handle operations a
 ## Technology Stack
 
 ### Backend
+
 - **Node.js** with **Express.js** framework
 - **TypeScript** for type safety
 - RESTful API design
@@ -23,6 +25,7 @@ Bruno's IMS is a comprehensive management system designed to handle operations a
 - Environment-based configuration
 
 ### Frontend
+
 - **React 18+** with **TypeScript**
 - **Vite** for fast development and building
 - **React Router** for client-side routing
@@ -61,32 +64,35 @@ brunos-ims/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/jackbruno1994/brunos-ims.git
    cd brunos-ims
    ```
 
 2. **Set up the Backend**
+
    ```bash
    cd backend
    npm install
-   
+
    # Copy environment file and configure
    cp .env.example .env
    # Edit .env with your configuration
-   
+
    # Build the project
    npm run build
-   
+
    # Start development server
    npm run dev
    ```
 
 3. **Set up the Frontend**
+
    ```bash
    cd ../frontend
    npm install
-   
+
    # Start development server
    npm run dev
    ```
@@ -139,6 +145,7 @@ The frontend will be available at `http://localhost:3000`
 ### Environment Variables
 
 #### Backend (.env)
+
 ```
 PORT=3001
 NODE_ENV=development
@@ -152,6 +159,7 @@ CORS_ORIGIN=http://localhost:3000
 ```
 
 #### Frontend
+
 ```
 VITE_API_URL=http://localhost:3001/api
 ```

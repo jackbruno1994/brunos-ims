@@ -1,0 +1,86 @@
+{
+  "name": "brunos-ims",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bruno's Integrated Management System - Full Stack Restaurant Management Platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:coverage": "npm run test -- --coverage",
+    "test:watch": "npm run test -- --watch",
+    "test:e2e": "playwright test",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && eslint src --ext .ts",
+    "lint:frontend": "cd frontend && eslint src --ext .ts,.tsx",
+    "lint:fix": "npm run lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "type-check": "npm run type-check:backend && npm run type-check:frontend",
+    "type-check:backend": "cd backend && tsc --noEmit",
+    "type-check:frontend": "cd frontend && tsc --noEmit",
+    "docs:generate": "npm run docs:api && npm run docs:code",
+    "docs:api": "swagger-jsdoc -d swaggerDef.js backend/src/**/*.ts -o docs/api.json",
+    "docs:code": "typedoc --out docs/code backend/src frontend/src",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:scan": "npm run security:audit && snyk test",
+    "clean": "rimraf backend/dist frontend/dist coverage docs/api docs/code",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
+    "@playwright/test": "^1.38.1",
+    "@typescript-eslint/eslint-plugin": "^6.7.2",
+    "@typescript-eslint/parser": "^6.7.2",
+    "concurrently": "^8.2.1",
+    "eslint": "^8.50.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.1.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-jsdoc": "^46.8.2",
+    "eslint-plugin-prefer-arrow": "^1.2.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "prettier": "^3.0.3",
+    "rimraf": "^5.0.5",
+    "snyk": "^1.1244.0",
+    "swagger-jsdoc": "^6.2.8",
+    "typedoc": "^0.25.2",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "restaurant-management",
+    "inventory-management",
+    "pos-system",
+    "typescript",
+    "react",
+    "express",
+    "postgresql"
+  ],
+  "author": "jackbruno1994",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jackbruno1994/brunos-ims.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jackbruno1994/brunos-ims/issues"
+  },
+  "homepage": "https://github.com/jackbruno1994/brunos-ims#readme"
+}
