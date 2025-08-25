@@ -117,8 +117,8 @@ export class AuditController {
       auditLogs.push(newAuditLog);
       auditIdCounter++;
 
-      // Emit real-time update (will be implemented with WebSocket)
-      // this.emitAuditUpdate(newAuditLog);
+      // Emit real-time update via WebSocket
+      this.emitAuditUpdate(newAuditLog);
 
       res.status(201).json({
         message: 'Audit log created successfully',
@@ -441,5 +441,84 @@ export class AuditController {
     }
 
     console.log(`Seeded ${auditLogs.length} sample audit logs`);
+  }
+
+  // WebSocket helper methods
+  private static emitAuditUpdate(auditLog: AuditLog) {
+    if (global.io) {
+      // Emit to all clients in the audit-logs room
+      global.io.to('audit-logs').emit('audit-log-created', {
+        type: 'audit-log-created',
+        data: auditLog,
+        timestamp: new Date().toISOString()
+      });
+
+      // Emit statistics update
+      global.io.to('audit-logs').emit('audit-stats-update', {
+        type: 'audit-stats-update',
+        message: 'Audit statistics updated',
+        timestamp: new Date().toISOString()
+      });
+
+      console.log(`Real-time audit update emitted: ${auditLog.action} by ${auditLog.userName}`);
+    }
+  }
+
+  // Simulate real-time audit events for demo purposes
+  static startRealtimeSimulation() {
+    const sampleActions = ['login', 'logout', 'create_order', 'update_menu', 'delete_item', 'view_report'];
+    const sampleResources = ['user', 'order', 'menu_item', 'restaurant', 'report'];
+    const sampleUsers = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson'];
+    const severities: ('low' | 'medium' | 'high' | 'critical')[] = ['low', 'medium', 'high', 'critical'];
+    const categories: ('authentication' | 'authorization' | 'data_change' | 'system' | 'user_action')[] = 
+      ['authentication', 'authorization', 'data_change', 'system', 'user_action'];
+
+    // Generate a new audit log every 10-30 seconds
+    const generateRandomLog = () => {
+      const action = sampleActions[Math.floor(Math.random() * sampleActions.length)];
+      const resource = sampleResources[Math.floor(Math.random() * sampleResources.length)];
+      const userName = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
+      
+      const auditLog: AuditLog = {
+        id: auditIdCounter.toString(),
+        timestamp: new Date(),
+        userId: `user_${Math.floor(Math.random() * 100)}`,
+        userName,
+        action,
+        resource,
+        resourceId: `${resource}_${Math.floor(Math.random() * 1000)}`,
+        details: {
+          description: `${action} performed on ${resource}`,
+          previousValue: Math.random() > 0.7 ? 'old_value' : null,
+          newValue: Math.random() > 0.7 ? 'new_value' : null,
+          realtime: true
+        },
+        ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
+        userAgent: 'Mozilla/5.0 (Real-time User Agent)',
+        restaurantId: `restaurant_${Math.floor(Math.random() * 10)}`,
+        severity: severities[Math.floor(Math.random() * severities.length)],
+        category: categories[Math.floor(Math.random() * categories.length)]
+      };
+
+      auditLogs.push(auditLog);
+      auditIdCounter++;
+
+      // Emit real-time update
+      this.emitAuditUpdate(auditLog);
+
+      console.log(`🔴 Real-time audit log generated: ${action} by ${userName}`);
+    };
+
+    // Start simulation with random intervals
+    const scheduleNext = () => {
+      const delay = Math.random() * 20000 + 10000; // 10-30 seconds
+      setTimeout(() => {
+        generateRandomLog();
+        scheduleNext();
+      }, delay);
+    };
+
+    scheduleNext();
+    console.log('🔴 Real-time audit simulation started');
   }
 }

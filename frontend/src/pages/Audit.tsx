@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuditWebSocket } from '../hooks/useAuditWebSocket';
 import './Audit.css';
 
 interface AuditLog {
@@ -50,6 +51,43 @@ const Audit: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
+  const [realtimeNotifications, setRealtimeNotifications] = useState<string[]>([]);
+
+  // WebSocket integration for real-time updates
+  const handleNewLog = useCallback((newLog: AuditLog) => {
+    if (!realTimeEnabled) return;
+
+    // Add notification
+    const notification = `New ${newLog.severity} audit log: ${newLog.action} by ${newLog.userName}`;
+    setRealtimeNotifications(prev => [notification, ...prev.slice(0, 4)]); // Keep last 5
+
+    // If we're on the first page and no filters, add the new log to the top
+    if (currentPage === 1 && Object.keys(filters).filter(key => filters[key as keyof AuditFilter]).length === 0) {
+      setAuditLogs(prev => [newLog, ...prev.slice(0, 19)]); // Keep 20 items per page
+    }
+  }, [realTimeEnabled, currentPage, filters]);
+
+  const handleStatsUpdate = useCallback(() => {
+    if (realTimeEnabled) {
+      fetchAuditStats();
+    }
+  }, [realTimeEnabled]);
+
+  const {
+    isConnected,
+    connectionError,
+    lastUpdate,
+    newLogsCount,
+    resetNewLogsCount,
+    sendTestLog
+  } = useAuditWebSocket({
+    filters: realTimeEnabled ? filters : undefined,
+    onNewLog: handleNewLog,
+    onStatsUpdate: handleStatsUpdate,
+    onConnect: () => console.log('Audit WebSocket connected'),
+    onDisconnect: () => console.log('Audit WebSocket disconnected')
+  });
 
   useEffect(() => {
     fetchAuditLogs();
@@ -172,6 +210,27 @@ const Audit: React.FC = () => {
       <div className="audit-header">
         <h2 className="page-title">Audit System</h2>
         <div className="audit-actions">
+          <div className="realtime-status">
+            <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
+              {isConnected ? '🟢' : '🔴'} {isConnected ? 'Live' : 'Offline'}
+            </div>
+            {lastUpdate && (
+              <div className="last-update">
+                Last update: {lastUpdate.toLocaleTimeString()}
+              </div>
+            )}
+            {newLogsCount > 0 && (
+              <div className="new-logs-count" onClick={resetNewLogsCount}>
+                {newLogsCount} new logs
+              </div>
+            )}
+          </div>
+          <button
+            className={`btn ${realTimeEnabled ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setRealTimeEnabled(!realTimeEnabled)}
+          >
+            {realTimeEnabled ? 'Disable' : 'Enable'} Real-time
+          </button>
           <button
             className="btn btn-secondary"
             onClick={() => setShowFilters(!showFilters)}
@@ -192,8 +251,41 @@ const Audit: React.FC = () => {
               Export CSV
             </button>
           </div>
+          {isConnected && (
+            <button
+              className="btn btn-outline"
+              onClick={sendTestLog}
+              title="Send test audit log"
+            >
+              Test Log
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Real-time Notifications */}
+      {realtimeNotifications.length > 0 && (
+        <div className="realtime-notifications">
+          <h4>Recent Updates</h4>
+          {realtimeNotifications.map((notification, index) => (
+            <div key={index} className="notification">
+              {notification}
+            </div>
+          ))}
+          <button 
+            className="btn btn-sm btn-secondary"
+            onClick={() => setRealtimeNotifications([])}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {connectionError && (
+        <div className="error-message">
+          WebSocket Error: {connectionError}
+        </div>
+      )}
 
       {/* Statistics Dashboard */}
       {stats && (
