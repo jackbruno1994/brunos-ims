@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import { RestaurantController } from '../controllers';
+import rbacRoutes from './rbac.routes';
 
 const router = Router();
 
 // Restaurant routes
 router.get('/restaurants', RestaurantController.getAllRestaurants);
 router.post('/restaurants', RestaurantController.createRestaurant);
+
+// RBAC routes
+router.use('/', rbacRoutes);
 
 // Health check route
 router.get('/health', (req, res) => {
