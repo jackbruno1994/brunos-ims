@@ -1,0 +1,152 @@
+name: Module Auto-Starter
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  queue_next_module:
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'automerge')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create module completion notice and queue next module
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Module order for automatic progression
+            const moduleOrder = [
+              'Foundation & UOM System',
+              'Purchasing',
+              'Receiving', 
+              'Inventory',
+              'Recipes',
+              'Production',
+              'Wastage & Prep Loss',
+              'Forecasting',
+              'Reporting',
+              'SOP & Audit'
+            ];
+
+            const pr = context.payload.pull_request;
+            const prTitle = (pr.title || '').toLowerCase();
+
+            // Find completed module by matching title
+            let completedIndex = -1;
+            for (let i = 0; i < moduleOrder.length; i++) {
+              if (prTitle.includes(moduleOrder[i].toLowerCase())) {
+                completedIndex = i;
+                break;
+              }
+            }
+            
+            const completedModule = completedIndex === -1 ? 
+              '(Module detection failed)' : 
+              moduleOrder[completedIndex];
+
+            // Create completion notice
+            await github.rest.issues.create({
+              owner, repo,
+              title: `✅ Module Completed: ${completedModule}`,
+              body: [
+                `**${completedModule}** has been successfully implemented and merged in PR #${pr.number}.`,
+                '',
+                `## Summary`,
+                `- **Merged by**: ${pr.merged_by?.login || 'Unknown'}`,
+                `- **Commits**: ${pr.commits} commits`,
+                `- **Files changed**: ${pr.changed_files} files`,
+                `- **Lines**: +${pr.additions}/-${pr.deletions}`,
+                '',
+                `@${owner} - Module is ready for review when convenient.`,
+                '',
+                `The next module will be queued automatically.`
+              ].join('\n'),
+              labels: ['info', 'module-completed', 'automation']
+            });
+
+            // Queue next module if available
+            const nextIndex = completedIndex + 1;
+            if (nextIndex >= moduleOrder.length) {
+              await github.rest.issues.create({
+                owner, repo,
+                title: '🎉 All Modules Completed',
+                body: [
+                  '**Congratulations!** All planned modules for Bruno\'s IMS have been implemented.',
+                  '',
+                  '## Completed Modules',
+                  ...moduleOrder.map((module, i) => `${i + 1}. ✅ ${module}`),
+                  '',
+                  '## Next Steps',
+                  '- Performance optimization',
+                  '- Security audit',
+                  '- User acceptance testing',
+                  '- Production deployment',
+                  '',
+                  '**The automated module progression has completed.**'
+                ].join('\n'),
+                labels: ['info', 'milestone', 'automation']
+              });
+              return;
+            }
+
+            const nextModule = moduleOrder[nextIndex];
+            const moduleSlug = nextModule.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+            // Create next module issue
+            await github.rest.issues.create({
+              owner, repo,
+              title: `Module: ${nextModule}`,
+              body: [
+                `### Module`,
+                nextModule,
+                '',
+                `### Description`,
+                `Implement the ${nextModule} module according to the system requirements and architecture guidelines.`,
+                '',
+                `### Context / How to run`,
+                `- **Web**: \`pnpm -w dev\` → http://localhost:3000`,
+                `- **API**: \`uvicorn services.api.main:app --reload\` → http://localhost:8000`,
+                `- **DB**: \`pnpm -w db:migrate && pnpm -w db:seed\``,
+                '',
+                `### Acceptance Criteria`,
+                `- [ ] ${nextModule} functionality implemented`,
+                `- [ ] Unit & integration tests added (≥70% coverage)`,
+                `- [ ] API endpoints documented`,
+                `- [ ] Frontend components with proper UX`,
+                `- [ ] Database schema updated if needed`,
+                `- [ ] Multi-UOM support implemented`,
+                `- [ ] RBAC permissions configured`,
+                `- [ ] Audit logging for critical operations`,
+                `- [ ] Error handling and validation`,
+                `- [ ] Performance optimized`,
+                `- [ ] Documentation updated in \`docs/flows/${moduleSlug}.md\``,
+                '',
+                `### Constraints`,
+                `- Use shared UOM conversion utilities`,
+                `- Follow clean architecture patterns`,
+                `- Maintain backward compatibility`,
+                `- No breaking schema changes without ADR`,
+                `- Implement proper security measures`,
+                '',
+                `### Review Policy`,
+                `This repository is configured for **full-auto** merge. PRs will merge automatically when CI passes.`,
+                `To pause auto-merge at any time, remove the \`automerge\` label from the PR.`,
+                '',
+                `---`,
+                `*This issue was created automatically after ${completedModule} completion.*`
+              ].join('\n'),
+              labels: ['copilot:ready', 'automerge', `module:${moduleSlug}`],
+              assignees: ['github-copilot[bot]']
+            });
+            
+            console.log(`✅ Queued next module: ${nextModule}`);
