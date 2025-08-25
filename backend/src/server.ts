@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import auditRoutes from './routes/audit.routes';
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +34,9 @@ app.get('/api', (req: Request, res: Response) => {
     version: '1.0.0'
   });
 });
+
+// Audit routes
+app.use('/api/audit', auditRoutes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
