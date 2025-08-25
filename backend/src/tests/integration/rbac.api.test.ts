@@ -2,18 +2,52 @@ import request from 'supertest';
 import { app } from '../../app';
 import { generateAuthToken } from '../../utils/auth';
 
-// Mock the RBAC service for integration tests
-jest.mock('../../services/rbac/rbac.service', () => ({
-  RBACService: {
-    getInstance: jest.fn()
-  }
-}));
+// Mock the RBAC service before any imports that use it
+jest.mock('../../services/rbac/rbac.service', () => {
+  const mockCreatePermission = jest.fn();
+  const mockGetPermissionById = jest.fn();
+  const mockCreateRole = jest.fn();
+  const mockGetRoleById = jest.fn();
+  const mockAddPermissionToRole = jest.fn();
+  const mockAssignRoleToUser = jest.fn();
+  const mockGetUserRoles = jest.fn();
 
-import { RBACService } from '../../services/rbac/rbac.service';
+  return {
+    RBACService: {
+      getInstance: () => ({
+        createPermission: mockCreatePermission,
+        getPermissionById: mockGetPermissionById,
+        createRole: mockCreateRole,
+        getRoleById: mockGetRoleById,
+        addPermissionToRole: mockAddPermissionToRole,
+        assignRoleToUser: mockAssignRoleToUser,
+        getUserRoles: mockGetUserRoles,
+      })
+    },
+    // Export the mocks so we can access them in tests
+    __mockCreatePermission: mockCreatePermission,
+    __mockGetPermissionById: mockGetPermissionById,
+    __mockCreateRole: mockCreateRole,
+    __mockGetRoleById: mockGetRoleById,
+    __mockAddPermissionToRole: mockAddPermissionToRole,
+    __mockAssignRoleToUser: mockAssignRoleToUser,
+    __mockGetUserRoles: mockGetUserRoles,
+  };
+});
+
+// Import the mocks
+const { 
+  __mockCreatePermission: mockCreatePermission,
+  __mockGetPermissionById: mockGetPermissionById,
+  __mockCreateRole: mockCreateRole,
+  __mockGetRoleById: mockGetRoleById,
+  __mockAddPermissionToRole: mockAddPermissionToRole,
+  __mockAssignRoleToUser: mockAssignRoleToUser,
+  __mockGetUserRoles: mockGetUserRoles,
+} = require('../../services/rbac/rbac.service');
 
 describe('RBAC API Integration Tests', () => {
   let authToken: string;
-  let mockRBACServiceInstance: any;
 
   beforeAll(async () => {
     // Create test user and generate auth token
@@ -23,29 +57,6 @@ describe('RBAC API Integration Tests', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
-    // Create a fresh mock service instance
-    mockRBACServiceInstance = {
-      createPermission: jest.fn(),
-      getPermissionById: jest.fn(),
-      updatePermission: jest.fn(),
-      deletePermission: jest.fn(),
-      createRole: jest.fn(),
-      getRoleById: jest.fn(),
-      getRoleByName: jest.fn(),
-      updateRole: jest.fn(),
-      deleteRole: jest.fn(),
-      addPermissionToRole: jest.fn(),
-      removePermissionFromRole: jest.fn(),
-      assignRoleToUser: jest.fn(),
-      removeRoleFromUser: jest.fn(),
-      getUserRoles: jest.fn(),
-      hasPermission: jest.fn(),
-      validatePermission: jest.fn(),
-    };
-
-    // Mock the getInstance method
-    (RBACService.getInstance as jest.Mock).mockReturnValue(mockRBACServiceInstance);
   });
 
   describe('Permission Endpoints', () => {
@@ -58,7 +69,7 @@ describe('RBAC API Integration Tests', () => {
         updatedAt: new Date()
       };
 
-      mockRBACServiceInstance.createPermission.mockResolvedValue(mockPermission);
+      mockCreatePermission.mockResolvedValue(mockPermission);
 
       const response = await request(app)
         .post('/api/permissions')
@@ -83,7 +94,7 @@ describe('RBAC API Integration Tests', () => {
         updatedAt: new Date()
       };
 
-      mockRBACServiceInstance.getPermissionById.mockResolvedValue(mockPermission);
+      mockGetPermissionById.mockResolvedValue(mockPermission);
 
       const response = await request(app)
         .get('/api/permissions/1')
@@ -109,7 +120,7 @@ describe('RBAC API Integration Tests', () => {
         updatedAt: new Date()
       };
 
-      mockRBACServiceInstance.createRole.mockResolvedValue(mockRole);
+      mockCreateRole.mockResolvedValue(mockRole);
 
       const response = await request(app)
         .post('/api/roles')
@@ -134,7 +145,7 @@ describe('RBAC API Integration Tests', () => {
         updatedAt: new Date()
       };
 
-      mockRBACServiceInstance.getRoleById.mockResolvedValue(mockRole);
+      mockGetRoleById.mockResolvedValue(mockRole);
 
       const response = await request(app)
         .get('/api/roles/1')
@@ -165,7 +176,7 @@ describe('RBAC API Integration Tests', () => {
         updatedAt: new Date()
       };
 
-      mockRBACServiceInstance.addPermissionToRole.mockResolvedValue(mockRoleWithPermission);
+      mockAddPermissionToRole.mockResolvedValue(mockRoleWithPermission);
 
       const response = await request(app)
         .post('/api/roles/1/permissions/2')
@@ -187,7 +198,7 @@ describe('RBAC API Integration Tests', () => {
         assignedAt: new Date()
       };
 
-      mockRBACServiceInstance.assignRoleToUser.mockResolvedValue(mockUserRole);
+      mockAssignRoleToUser.mockResolvedValue(mockUserRole);
 
       const response = await request(app)
         .post('/api/users/testUser/roles/1')
@@ -208,7 +219,7 @@ describe('RBAC API Integration Tests', () => {
         updatedAt: new Date()
       }];
 
-      mockRBACServiceInstance.getUserRoles.mockResolvedValue(mockRoles);
+      mockGetUserRoles.mockResolvedValue(mockRoles);
 
       const response = await request(app)
         .get('/api/users/testUser/roles')
@@ -221,7 +232,7 @@ describe('RBAC API Integration Tests', () => {
 
   describe('Error Handling', () => {
     test('Should return 404 for non-existent permission', async () => {
-      mockRBACServiceInstance.getPermissionById.mockResolvedValue(null);
+      mockGetPermissionById.mockResolvedValue(null);
 
       const response = await request(app)
         .get('/api/permissions/nonexistent')
