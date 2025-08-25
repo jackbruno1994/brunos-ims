@@ -36,7 +36,7 @@ interface QueueItem {
 const OrderProcessing: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [selectedRestaurant] = useState('test-restaurant-1');
+  const [selectedRestaurant] = useState("123e4567-e89b-12d3-a456-426614174000");
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,30 +116,28 @@ const OrderProcessing: React.FC = () => {
     setLoading(true);
     try {
       const orderData = {
-        restaurantId: selectedRestaurant,
+        restaurantId: "123e4567-e89b-12d3-a456-426614174000", // Valid UUID
         customerInfo: {
           name: `Customer ${Math.floor(Math.random() * 1000)}`,
-          phone: '+1234567890',
-          email: 'test@example.com'
+          phone: "1234567890", // Without + sign
+          email: "test@example.com"
         },
-        type: 'dine_in',
-        priority: Math.random() > 0.7 ? 'high' : 'normal',
-        items: [
-          {
-            id: `item-${Date.now()}`,
-            menuItemId: `menu-item-${Math.floor(Math.random() * 10)}`,
-            quantity: Math.floor(Math.random() * 3) + 1,
-            unitPrice: 12.99,
-            totalPrice: 12.99 * (Math.floor(Math.random() * 3) + 1)
-          }
-        ],
+        type: "dine_in",
+        priority: Math.random() > 0.7 ? "high" : "normal",
+        items: [{
+          id: `item-${Date.now()}`,
+          menuItemId: "123e4567-e89b-12d3-a456-426614174001", // Valid UUID
+          quantity: Math.floor(Math.random() * 3) + 1,
+          unitPrice: 12.99,
+          totalPrice: 12.99 * (Math.floor(Math.random() * 3) + 1)
+        }],
         subtotal: 12.99,
         tax: 1.04,
         deliveryFee: 0,
         totalAmount: 14.03,
-        currency: 'USD',
+        currency: "USD",
         estimatedPrepTime: Math.floor(Math.random() * 20) + 10,
-        source: 'pos'
+        source: "pos"
       };
 
       const response = await axios.post(`${API_BASE}/orders`, orderData);
