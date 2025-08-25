@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -26,11 +27,25 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
+// API routes
+app.use('/api', routes);
+
+// API info route
 app.get('/api', (_req: Request, res: Response) => {
   res.status(200).json({
     message: "Welcome to Bruno's IMS API",
     version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      restaurants: '/api/restaurants',
+      inventory: {
+        items: '/api/inventory/items',
+        stock: '/api/inventory/stock',
+        movements: '/api/inventory/stock/movement',
+        locations: '/api/inventory/locations',
+        alerts: '/api/inventory/alerts'
+      }
+    }
   });
 });
 
