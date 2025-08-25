@@ -8,11 +8,11 @@ router.get('/restaurants', RestaurantController.getAllRestaurants);
 router.post('/restaurants', RestaurantController.createRestaurant);
 
 // Health check route
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
-    service: 'Bruno\'s IMS API',
-    timestamp: new Date().toISOString()
+    service: "Bruno's IMS API",
+    timestamp: new Date().toISOString(),
   });
 });
 

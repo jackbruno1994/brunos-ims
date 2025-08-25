@@ -7,6 +7,7 @@ Bruno's IMS (Integrated Management System) is designed as a full-stack web appli
 ### Technology Stack
 
 #### Backend
+
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Language**: TypeScript
@@ -18,6 +19,7 @@ Bruno's IMS (Integrated Management System) is designed as a full-stack web appli
   - `dotenv` - Environment variable management
 
 #### Frontend
+
 - **Framework**: React 18+
 - **Language**: TypeScript
 - **Build Tool**: Vite
@@ -81,7 +83,7 @@ The frontend follows a component-based architecture with:
 
 ### Development Workflow
 
-1. **Backend Development**: 
+1. **Backend Development**:
    - `npm run dev` - Start development server with hot reload
    - `npm run build` - Build TypeScript to JavaScript
    - `npm start` - Run production build

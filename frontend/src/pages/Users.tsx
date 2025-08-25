@@ -7,7 +7,7 @@ const Users: React.FC = () => {
       <div className="card">
         <h3>User Management</h3>
         <p>Manage users, roles, and permissions across all restaurants.</p>
-        
+
         <div className="card">
           <h4>User Features</h4>
           <ul style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto' }}>
@@ -18,7 +18,7 @@ const Users: React.FC = () => {
             <li>Handle multi-country user permissions</li>
           </ul>
         </div>
-        
+
         <p style={{ marginTop: '20px', fontStyle: 'italic' }}>
           User management functionality will be implemented here.
         </p>

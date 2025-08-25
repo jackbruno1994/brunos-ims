@@ -14,39 +14,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <h1>Bruno's IMS</h1>
         <p>Integrated Management System for Multi-Country Restaurant Groups</p>
       </header>
-      
+
       <nav className="nav">
         <ul>
           <li>
-            <Link 
-              to="/" 
-              className={location.pathname === '/' ? 'active' : ''}
-            >
+            <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
               Dashboard
             </Link>
           </li>
           <li>
-            <Link 
-              to="/restaurants" 
+            <Link
+              to="/restaurants"
               className={location.pathname === '/restaurants' ? 'active' : ''}
             >
               Restaurants
             </Link>
           </li>
           <li>
-            <Link 
-              to="/users" 
-              className={location.pathname === '/users' ? 'active' : ''}
-            >
+            <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>
               Users
             </Link>
           </li>
         </ul>
       </nav>
-      
-      <main className="main-content">
-        {children}
-      </main>
+
+      <main className="main-content">{children}</main>
     </div>
   );
 };

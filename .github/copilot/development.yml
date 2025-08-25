@@ -1,0 +1,291 @@
+# Development Standards Configuration - Industry Best Practices
+# ESLint, Prettier, Jest, Husky, Conventional Commits
+
+# ESLint Configuration
+eslint:
+  extends:
+    - '@typescript-eslint/recommended'
+    - 'airbnb-base'
+    - 'airbnb-typescript/base'
+    - 'prettier'
+
+  parser: '@typescript-eslint/parser'
+
+  parserOptions:
+    ecmaVersion: 2022
+    sourceType: 'module'
+    project: './tsconfig.json'
+
+  plugins:
+    - '@typescript-eslint'
+    - 'import'
+    - 'prefer-arrow'
+    - 'jsdoc'
+
+  rules:
+    # TypeScript specific
+    '@typescript-eslint/no-unused-vars': 'error'
+    '@typescript-eslint/explicit-function-return-type': 'warn'
+    '@typescript-eslint/no-explicit-any': 'error'
+    '@typescript-eslint/prefer-nullish-coalescing': 'error'
+    '@typescript-eslint/prefer-optional-chain': 'error'
+
+    # Import rules
+    'import/order':
+      [
+        'error',
+        {
+          'groups': ['builtin', 'external', 'internal', 'parent', 'sibling'],
+          'newlines-between': 'always',
+          'alphabetize': { 'order': 'asc' },
+        },
+      ]
+    'import/no-unresolved': 'error'
+    'import/no-cycle': 'error'
+    'import/prefer-default-export': 'off'
+
+    # General rules
+    'prefer-const': 'error'
+    'no-var': 'error'
+    'prefer-arrow/prefer-arrow-functions': 'error'
+    'max-len': ['error', { 'code': 100, 'ignoreUrls': true }]
+    'no-console': ['warn', { 'allow': ['warn', 'error'] }]
+
+    # JSDoc rules
+    'jsdoc/check-alignment': 'error'
+    'jsdoc/check-param-names': 'error'
+    'jsdoc/check-return-types': 'error'
+    'jsdoc/require-param': 'error'
+    'jsdoc/require-returns': 'error'
+
+# Prettier Configuration
+prettier:
+  semi: true
+  trailingComma: 'es5'
+  singleQuote: true
+  printWidth: 100
+  tabWidth: 2
+  useTabs: false
+  quoteProps: 'as-needed'
+  bracketSpacing: true
+  bracketSameLine: false
+  arrowParens: 'avoid'
+  endOfLine: 'lf'
+  embeddedLanguageFormatting: 'auto'
+
+# Jest Configuration
+jest:
+  preset: 'ts-jest'
+  testEnvironment: 'node'
+
+  # Coverage settings
+  collectCoverage: true
+  coverageDirectory: 'coverage'
+  coverageReporters: ['text', 'lcov', 'html', 'json']
+
+  # Coverage thresholds
+  coverageThreshold:
+    global:
+      branches: 80
+      functions: 80
+      lines: 80
+      statements: 80
+
+  # Test patterns
+  testMatch:
+    - '**/__tests__/**/*.test.ts'
+    - '**/?(*.)+(spec|test).ts'
+
+  # Setup files
+  setupFilesAfterEnv:
+    - '<rootDir>/tests/setup.ts'
+
+  # Module mapping
+  moduleNameMapping:
+    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@tests/(.*)$': '<rootDir>/tests/$1'
+
+  # Transform ignore patterns
+  transformIgnorePatterns:
+    - 'node_modules/(?!(module-to-transform)/)'
+
+# Frontend Jest Configuration (React Testing Library)
+jest_frontend:
+  extends: '../jest.config.js'
+  testEnvironment: 'jsdom'
+
+  setupFilesAfterEnv:
+    - '<rootDir>/tests/setup.ts'
+    - '@testing-library/jest-dom'
+
+  moduleNameMapping:
+    '^@/(.*)$': '<rootDir>/src/$1'
+    "\\.(css|less|scss|sass)$": 'identity-obj-proxy'
+    "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2)$": '<rootDir>/tests/__mocks__/fileMock.js'
+
+# Husky Pre-commit Hooks
+husky:
+  hooks:
+    pre-commit:
+      - 'lint-staged'
+      - 'npm run type-check'
+
+    pre-push:
+      - 'npm run test'
+      - 'npm run build'
+
+    commit-msg:
+      - 'commitlint -E HUSKY_GIT_PARAMS'
+
+# Lint-staged Configuration
+lint_staged:
+  '*.{ts,tsx,js,jsx}':
+    - 'eslint --fix'
+    - 'prettier --write'
+    - 'git add'
+
+  '*.{json,md,yml,yaml}':
+    - 'prettier --write'
+    - 'git add'
+
+  '*.{css,scss,less}':
+    - 'prettier --write'
+    - 'git add'
+
+# Conventional Commits Configuration
+commitlint:
+  extends: ['@commitlint/config-conventional']
+
+  rules:
+    'type-enum': [
+        2,
+        'always',
+        [
+          'feat', # New feature
+          'fix', # Bug fix
+          'docs', # Documentation only changes
+          'style', # Changes that do not affect the meaning of the code
+          'refactor', # Code change that neither fixes a bug nor adds a feature
+          'perf', # Code change that improves performance
+          'test', # Adding missing tests or correcting existing tests
+          'build', # Changes that affect the build system or external dependencies
+          'ci', # Changes to CI configuration files and scripts
+          'chore', # Other changes that don't modify src or test files
+          'revert', # Reverts a previous commit
+        ],
+      ]
+
+    'type-case': [2, 'always', 'lower-case']
+    'type-empty': [2, 'never']
+    'subject-case': [2, 'never', ['sentence-case', 'start-case', 'pascal-case', 'upper-case']]
+    'subject-empty': [2, 'never']
+    'subject-full-stop': [2, 'never', '.']
+    'header-max-length': [2, 'always', 100]
+    'body-leading-blank': [1, 'always']
+    'body-max-line-length': [2, 'always', 100]
+    'footer-leading-blank': [1, 'always']
+
+# TypeScript Configuration Standards
+typescript:
+  compilerOptions:
+    target: 'ES2022'
+    module: 'ESNext'
+    moduleResolution: 'node'
+    lib: ['ES2022', 'DOM', 'DOM.Iterable']
+
+    # Strict type checking
+    strict: true
+    noImplicitAny: true
+    noImplicitReturns: true
+    noImplicitThis: true
+    noUnusedLocals: true
+    noUnusedParameters: true
+    exactOptionalPropertyTypes: true
+
+    # Module resolution
+    esModuleInterop: true
+    allowSyntheticDefaultImports: true
+    forceConsistentCasingInFileNames: true
+
+    # Advanced options
+    skipLibCheck: true
+    declaration: true
+    declarationMap: true
+    sourceMap: true
+
+    # Path mapping
+    baseUrl: './src'
+    paths:
+      '@/*': ['*']
+      '@components/*': ['components/*']
+      '@utils/*': ['utils/*']
+      '@services/*': ['services/*']
+      '@types/*': ['types/*']
+
+# Package.json Scripts Standards
+scripts:
+  # Development
+  dev: 'concurrently "npm run dev:backend" "npm run dev:frontend"'
+  dev:backend: 'cd backend && npm run dev'
+  dev:frontend: 'cd frontend && npm run dev'
+
+  # Building
+  build: 'npm run build:backend && npm run build:frontend'
+  build:backend: 'cd backend && npm run build'
+  build:frontend: 'cd frontend && npm run build'
+
+  # Testing
+  test: 'npm run test:backend && npm run test:frontend'
+  test:backend: 'cd backend && npm run test'
+  test:frontend: 'cd frontend && npm run test'
+  test:coverage: 'npm run test -- --coverage'
+  test:watch: 'npm run test -- --watch'
+
+  # Linting & Formatting
+  lint: 'npm run lint:backend && npm run lint:frontend'
+  lint:backend: 'cd backend && eslint src --ext .ts'
+  lint:frontend: 'cd frontend && eslint src --ext .ts,.tsx'
+  lint:fix: 'npm run lint -- --fix'
+
+  format: 'prettier --write "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"'
+  format:check: 'prettier --check "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"'
+
+  # Type checking
+  type-check: 'npm run type-check:backend && npm run type-check:frontend'
+  type-check:backend: 'cd backend && tsc --noEmit'
+  type-check:frontend: 'cd frontend && tsc --noEmit'
+
+  # Git hooks
+  prepare: 'husky install'
+
+  # Database (when applicable)
+  db:migrate: 'cd backend && npm run migrate'
+  db:seed: 'cd backend && npm run seed'
+  db:reset: 'cd backend && npm run db:reset'
+
+# Code Quality Gates
+quality_gates:
+  coverage_threshold: 80
+  complexity_threshold: 10
+  duplication_threshold: 3
+  maintainability_threshold: 'A'
+
+  required_checks:
+    - 'eslint_passes'
+    - 'prettier_formatted'
+    - 'tests_pass'
+    - 'type_check_passes'
+    - 'build_succeeds'
+    - 'coverage_meets_threshold'
+
+# Development Workflow
+workflow:
+  branch_naming: 'feature/{ticket-number}-{short-description}'
+  commit_frequency: 'small_atomic_commits'
+  pull_request_template: true
+  code_review_required: true
+
+  merge_strategy:
+    default: 'squash'
+    hotfix: 'merge'
+    release: 'merge'

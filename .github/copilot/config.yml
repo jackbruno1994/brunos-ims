@@ -1,0 +1,181 @@
+# GitHub Copilot Configuration - Bruno's IMS
+# Main configuration file with project structure and coding standards
+
+# Project Structure Configuration
+project:
+  name: "Bruno's Integrated Management System"
+  type: 'full-stack-restaurant-management'
+  architecture: 'microservices'
+
+  # Standardized Directory Structure
+  structure:
+    backend:
+      source: 'backend/src'
+      tests: 'backend/tests'
+      config: 'backend/config'
+      docs: 'backend/docs'
+      build: 'backend/dist'
+
+    frontend:
+      source: 'frontend/src'
+      tests: 'frontend/tests'
+      components: 'frontend/src/components'
+      pages: 'frontend/src/pages'
+      hooks: 'frontend/src/hooks'
+      utils: 'frontend/src/utils'
+      services: 'frontend/src/services'
+      types: 'frontend/src/types'
+      assets: 'frontend/src/assets'
+      build: 'frontend/dist'
+
+    shared:
+      docs: 'docs'
+      scripts: 'scripts'
+      configs: 'configs'
+
+# Technology Stack Guidelines
+tech_stack:
+  backend:
+    runtime: 'Node.js 18+'
+    language: 'TypeScript'
+    framework: 'Express.js'
+    database: 'PostgreSQL'
+    orm: 'Prisma/TypeORM'
+    testing: 'Jest + Supertest'
+
+  frontend:
+    runtime: 'Node.js 18+'
+    language: 'TypeScript'
+    framework: 'React 18+'
+    bundler: 'Vite'
+    state_management: 'Zustand/Redux Toolkit'
+    styling: 'Tailwind CSS + CSS Modules'
+    testing: 'Jest + React Testing Library'
+
+  shared:
+    package_manager: 'npm'
+    node_version: '18.x'
+    typescript_version: '5.x'
+
+# Coding Standards
+coding_standards:
+  # File Naming Conventions
+  naming:
+    files: 'kebab-case'
+    components: 'PascalCase'
+    functions: 'camelCase'
+    constants: 'SCREAMING_SNAKE_CASE'
+    types: 'PascalCase'
+    interfaces: 'PascalCase (with I prefix)'
+
+  # Code Organization
+  organization:
+    max_file_lines: 300
+    max_function_lines: 50
+    max_component_lines: 200
+    prefer_composition: true
+    single_responsibility: true
+
+  # Import/Export Standards
+  imports:
+    order: ['node_modules', 'internal', 'relative']
+    group_separator: true
+    no_default_export_from_index: true
+    prefer_named_exports: true
+
+# Module Architecture Patterns
+architecture_patterns:
+  backend:
+    pattern: 'Clean Architecture'
+    layers:
+      - 'controllers'
+      - 'services'
+      - 'repositories'
+      - 'entities'
+      - 'interfaces'
+
+  frontend:
+    pattern: 'Feature-based Architecture'
+    structure:
+      - 'features/{feature-name}'
+      - 'shared/components'
+      - 'shared/hooks'
+      - 'shared/utils'
+      - 'shared/types'
+
+# Resource Management
+resource_management:
+  memory:
+    max_bundle_size: '500KB'
+    lazy_loading: true
+    code_splitting: true
+
+  database:
+    connection_pooling: true
+    query_optimization: true
+    migration_strategy: 'up/down'
+
+  caching:
+    strategy: 'Redis + In-Memory'
+    ttl_default: '3600s'
+    invalidation: 'tag-based'
+
+# API Design Standards
+api_design:
+  style: 'RESTful'
+  versioning: 'URL path (/api/v1/)'
+  authentication: 'JWT + Refresh Tokens'
+  rate_limiting: true
+  cors_policy: 'restrictive'
+
+  endpoints:
+    naming: 'noun-based'
+    http_methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+    status_codes: 'HTTP standard'
+    error_format: 'RFC 7807'
+
+  documentation:
+    format: 'OpenAPI 3.0'
+    auto_generation: true
+    examples_required: true
+
+# Performance Standards
+performance:
+  frontend:
+    lighthouse_score: '>= 90'
+    first_contentful_paint: '< 2s'
+    time_to_interactive: '< 4s'
+    cumulative_layout_shift: '< 0.1'
+
+  backend:
+    response_time: '< 200ms'
+    throughput: '> 1000 req/s'
+    uptime: '99.9%'
+    cpu_usage: '< 70%'
+    memory_usage: '< 80%'
+
+# Environment Configuration
+environments:
+  development:
+    hot_reload: true
+    source_maps: true
+    debug_mode: true
+    mock_data: true
+
+  testing:
+    coverage_threshold: 80
+    integration_tests: true
+    e2e_tests: true
+    performance_tests: true
+
+  staging:
+    production_like: true
+    monitoring: true
+    logging: 'info'
+
+  production:
+    optimizations: true
+    minification: true
+    compression: true
+    monitoring: 'extensive'
+    logging: 'warn'
