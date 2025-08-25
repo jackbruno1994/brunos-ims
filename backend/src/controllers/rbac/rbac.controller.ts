@@ -1,14 +1,6 @@
 import { Request, Response } from 'express';
 import { RBACService } from '../../services/rbac/rbac.service';
 
-// Extended Request interface to include user information
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    [key: string]: any;
-  };
-}
-
 export class RBACController {
   private service: RBACService;
 
@@ -17,21 +9,23 @@ export class RBACController {
   }
 
   // Permission controllers
-  public createPermission = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public createPermission = async (req: Request, res: Response): Promise<void> => {
     try {
-      const permission = await this.service.createPermission(req.body, req.user.id);
+      const userId = (req as any).user?.id || 'anonymous';
+      const permission = await this.service.createPermission(req.body, userId);
       res.status(201).json(permission);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 
-  public updatePermission = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public updatePermission = async (req: Request, res: Response): Promise<void> => {
     try {
+      const userId = (req as any).user?.id || 'anonymous';
       const permission = await this.service.updatePermission(
         req.params.id,
         req.body,
-        req.user.id
+        userId
       );
       res.status(200).json(permission);
     } catch (error) {
@@ -43,9 +37,10 @@ export class RBACController {
     }
   };
 
-  public deletePermission = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public deletePermission = async (req: Request, res: Response): Promise<void> => {
     try {
-      const deleted = await this.service.deletePermission(req.params.id, req.user.id);
+      const userId = (req as any).user?.id || 'anonymous';
+      const deleted = await this.service.deletePermission(req.params.id, userId);
       if (deleted) {
         res.status(204).send();
       } else {
@@ -79,21 +74,23 @@ export class RBACController {
   };
 
   // Role controllers
-  public createRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public createRole = async (req: Request, res: Response): Promise<void> => {
     try {
-      const role = await this.service.createRole(req.body, req.user.id);
+      const userId = (req as any).user?.id || 'anonymous';
+      const role = await this.service.createRole(req.body, userId);
       res.status(201).json(role);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 
-  public updateRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public updateRole = async (req: Request, res: Response): Promise<void> => {
     try {
+      const userId = (req as any).user?.id || 'anonymous';
       const role = await this.service.updateRole(
         req.params.id,
         req.body,
-        req.user.id
+        userId
       );
       res.status(200).json(role);
     } catch (error) {
@@ -105,9 +102,10 @@ export class RBACController {
     }
   };
 
-  public deleteRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public deleteRole = async (req: Request, res: Response): Promise<void> => {
     try {
-      const deleted = await this.service.deleteRole(req.params.id, req.user.id);
+      const userId = (req as any).user?.id || 'anonymous';
+      const deleted = await this.service.deleteRole(req.params.id, userId);
       if (deleted) {
         res.status(204).send();
       } else {
@@ -141,20 +139,22 @@ export class RBACController {
   };
 
   // UserRole controllers
-  public assignRoleToUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public assignRoleToUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const { userId, roleId } = req.body;
-      const userRole = await this.service.assignRoleToUser(userId, roleId, req.user.id);
+      const assignedBy = (req as any).user?.id || 'anonymous';
+      const userRole = await this.service.assignRoleToUser(userId, roleId, assignedBy);
       res.status(201).json(userRole);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 
-  public removeRoleFromUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public removeRoleFromUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const { userId, roleId } = req.body;
-      const removed = await this.service.removeRoleFromUser(userId, roleId, req.user.id);
+      const removedBy = (req as any).user?.id || 'anonymous';
+      const removed = await this.service.removeRoleFromUser(userId, roleId, removedBy);
       if (removed) {
         res.status(204).send();
       } else {
