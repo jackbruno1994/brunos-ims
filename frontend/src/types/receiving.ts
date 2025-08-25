@@ -1,4 +1,4 @@
-// Purchase Order and Receiving models for Bruno's IMS
+// Frontend types for Purchase Order receiving functionality
 
 export interface PurchaseOrder {
   id: string;
@@ -16,32 +16,6 @@ export interface PurchaseOrder {
   updatedAt: Date;
 }
 
-export interface PurchaseOrderItem {
-  id: string;
-  purchaseOrderId: string;
-  itemId: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  receivedQuantity: number;
-  uom: string; // Unit of measure
-}
-
-export interface Supplier {
-  id: string;
-  name: string;
-  code: string;
-  contactPerson?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  paymentTerms?: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// New models for receiving process
 export interface ScannedDocument {
   id: string;
   purchaseOrderId?: string;
@@ -50,7 +24,7 @@ export interface ScannedDocument {
   filePath: string;
   fileSize: number;
   mimeType: string;
-  ocrData?: string; // JSON string containing extracted OCR data
+  ocrData?: string;
   isProcessed: boolean;
   uploadedBy: string;
   uploadedAt: Date;
@@ -78,8 +52,8 @@ export interface ReceivingDiscrepancy {
   purchaseOrderId: string;
   itemId: string;
   discrepancyType: 'quantity' | 'price' | 'quality' | 'missing_item' | 'extra_item';
-  expectedValue: string; // JSON string for flexible value storage
-  actualValue: string; // JSON string for flexible value storage
+  expectedValue: string;
+  actualValue: string;
   description: string;
   status: 'open' | 'investigating' | 'resolved' | 'cancelled';
   resolution?: string;
@@ -89,34 +63,6 @@ export interface ReceivingDiscrepancy {
   resolvedAt?: Date;
 }
 
-export interface Receipt {
-  id: string;
-  receiptNumber: string;
-  purchaseOrderId: string;
-  supplierId: string;
-  receivedDate: Date;
-  receivedBy: string;
-  status: 'partial' | 'complete' | 'over_delivery';
-  notes?: string;
-  deliveryNoteNumber?: string;
-  invoiceNumber?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ReceiptItem {
-  id: string;
-  receiptId: string;
-  itemId: string;
-  expectedQuantity: number;
-  receivedQuantity: number;
-  unitPrice: number;
-  condition: 'good' | 'damaged' | 'expired' | 'short_dated';
-  notes?: string;
-  batchId?: string;
-}
-
-// OCR extraction data structure
 export interface OCRData {
   documentNumber?: string;
   supplierName?: string;
@@ -129,11 +75,10 @@ export interface OCRData {
     totalPrice?: number;
   }>;
   totalAmount?: number;
-  confidence?: number; // OCR confidence score
+  confidence?: number;
   rawText?: string;
 }
 
-// Barcode/QR code data structure
 export interface BarcodeData {
   code: string;
   format: 'CODE128' | 'EAN13' | 'UPC' | 'QR' | 'DATAMATRIX' | 'MANUAL' | 'UNKNOWN';
@@ -142,4 +87,15 @@ export interface BarcodeData {
   expirationDate?: string;
   lotNumber?: string;
   additionalData?: Record<string, any>;
+}
+
+export interface CameraPermission {
+  granted: boolean;
+  error?: string;
+}
+
+export interface ScanResult {
+  success: boolean;
+  data?: BarcodeData;
+  error?: string;
 }
