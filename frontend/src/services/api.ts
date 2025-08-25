@@ -65,6 +65,88 @@ export const apiService = {
     const response = await api.get('/health');
     return response.data;
   },
+
+  // Audit System Endpoints
+  audit: {
+    // Dashboard
+    getDashboard: async () => {
+      const response = await api.get('/audit/dashboard');
+      return response.data;
+    },
+
+    // Audit Logs
+    getLogs: async (params?: any) => {
+      const response = await api.get('/audit/logs', { params });
+      return response.data;
+    },
+
+    createLog: async (logData: any) => {
+      const response = await api.post('/audit/logs', logData);
+      return response.data;
+    },
+
+    // Analytics
+    getAnalytics: async (params?: any) => {
+      const response = await api.get('/audit/analytics', { params });
+      return response.data;
+    },
+
+    getPredictiveAnalytics: async () => {
+      const response = await api.get('/audit/analytics/predictive');
+      return response.data;
+    },
+
+    // Security Events
+    getSecurityEvents: async (params?: any) => {
+      const response = await api.get('/audit/security/events', { params });
+      return response.data;
+    },
+
+    createSecurityEvent: async (eventData: any) => {
+      const response = await api.post('/audit/security/events', eventData);
+      return response.data;
+    },
+
+    // Compliance
+    getComplianceReports: async (params?: any) => {
+      const response = await api.get('/audit/compliance/reports', { params });
+      return response.data;
+    },
+
+    generateComplianceReport: async (reportData: any) => {
+      const response = await api.post('/audit/compliance/reports/generate', reportData);
+      return response.data;
+    },
+
+    // Investigations
+    getInvestigations: async (params?: any) => {
+      const response = await api.get('/audit/investigations', { params });
+      return response.data;
+    },
+
+    createInvestigation: async (investigationData: any) => {
+      const response = await api.post('/audit/investigations', investigationData);
+      return response.data;
+    },
+
+    // Search
+    searchAuditData: async (searchData: any) => {
+      const response = await api.post('/audit/search', searchData);
+      return response.data;
+    },
+
+    // Integrations
+    getIntegrations: async () => {
+      const response = await api.get('/audit/integrations');
+      return response.data;
+    },
+
+    // Performance Metrics
+    getMetrics: async () => {
+      const response = await api.get('/audit/metrics');
+      return response.data;
+    }
+  }
 };
 
 export default api;
