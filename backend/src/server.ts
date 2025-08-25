@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
+import { AuditController } from './controllers';
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +19,9 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// API routes
+app.use('/api', routes);
+
 // Basic health check route
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
@@ -26,11 +31,16 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
+// Root API endpoint
 app.get('/api', (req: Request, res: Response) => {
   res.status(200).json({
     message: 'Welcome to Bruno\'s IMS API',
-    version: '1.0.0'
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      restaurants: '/api/restaurants',
+      audit: '/api/audit'
+    }
   });
 });
 
@@ -55,6 +65,12 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
+  
+  // Seed sample audit data for development
+  if (process.env.NODE_ENV !== 'production') {
+    AuditController.seedSampleData();
+    console.log('✅ Sample audit data seeded');
+  }
 });
 
 export default app;

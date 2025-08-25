@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 
+export { AuditController } from './auditController';
+
 // Example controller for restaurant management
 export class RestaurantController {
   static async getAllRestaurants(req: Request, res: Response) {
