@@ -60,6 +60,59 @@ export const apiService = {
     return response.data;
   },
 
+  // Purchase Order endpoints
+  getPurchaseOrders: async () => {
+    const response = await api.get('/purchase-orders');
+    return response.data;
+  },
+
+  getPurchaseOrder: async (id: string) => {
+    const response = await api.get(`/purchase-orders/${id}`);
+    return response.data;
+  },
+
+  createPurchaseOrder: async (poData: any) => {
+    const response = await api.post('/purchase-orders', poData);
+    return response.data;
+  },
+
+  updatePurchaseOrder: async (id: string, poData: any) => {
+    const response = await api.put(`/purchase-orders/${id}`, poData);
+    return response.data;
+  },
+
+  deletePurchaseOrder: async (id: string) => {
+    const response = await api.delete(`/purchase-orders/${id}`);
+    return response.data;
+  },
+
+  markPurchaseOrderAsReceived: async (id: string) => {
+    const response = await api.post(`/purchase-orders/${id}/receive`);
+    return response.data;
+  },
+
+  // Document endpoints
+  getDocumentsByPO: async (poId: string) => {
+    const response = await api.get(`/purchase-orders/${poId}/documents`);
+    return response.data;
+  },
+
+  uploadDocument: async (poId: string, documentData: any) => {
+    const response = await api.post(`/purchase-orders/${poId}/documents`, documentData);
+    return response.data;
+  },
+
+  // Product Batch endpoints
+  getBatchesByPO: async (poId: string) => {
+    const response = await api.get(`/purchase-orders/${poId}/batches`);
+    return response.data;
+  },
+
+  createProductBatch: async (poId: string, batchData: any) => {
+    const response = await api.post(`/purchase-orders/${poId}/batches`, batchData);
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/health');
