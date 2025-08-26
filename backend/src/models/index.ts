@@ -40,3 +40,67 @@ export interface MenuItem {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Purchase Order models for the new PO processing system
+export enum POStatus {
+  DRAFT = 'draft',
+  SUBMITTED = 'submitted',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  PROCESSED = 'processed',
+  CANCELLED = 'cancelled'
+}
+
+export interface POLineItem {
+  id: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  supplierId: string;
+  supplierName: string;
+  restaurantId: string;
+  status: POStatus;
+  lineItems: POLineItem[];
+  subtotal: number;
+  tax: number;
+  totalAmount: number;
+  requestedDeliveryDate?: Date;
+  notes?: string;
+  createdBy: string;
+  approvedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Document {
+  id: string;
+  purchaseOrderId: string;
+  fileName: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  path: string;
+  uploadedBy: string;
+  uploadedAt: Date;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  paymentTerms?: string;
+  status: 'active' | 'inactive';
+  createdAt: Date;
+  updatedAt: Date;
+}
