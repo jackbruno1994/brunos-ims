@@ -42,10 +42,10 @@ const upload = multer({
 });
 
 // Mock data stores - in a real app these would be database operations
-const mockPurchaseOrders: PurchaseOrder[] = [];
-const mockScannedDocuments: ScannedDocument[] = [];
-const mockProductBatches: ProductBatch[] = [];
-const mockReceivingDiscrepancies: ReceivingDiscrepancy[] = [];
+export const mockPurchaseOrders: PurchaseOrder[] = [];
+export const mockScannedDocuments: ScannedDocument[] = [];
+export const mockProductBatches: ProductBatch[] = [];
+export const mockReceivingDiscrepancies: ReceivingDiscrepancy[] = [];
 // Note: mockReceipts would be used for receipt management functionality
 
 export const receivingController = {
