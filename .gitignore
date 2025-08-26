@@ -193,3 +193,8 @@ local.json
 
 # Generated documentation
 *.pdf
+
+# Upload directories
+backend/uploads/
+error.log
+combined.log
