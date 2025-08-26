@@ -38,6 +38,13 @@ api.interceptors.response.use(
 );
 
 export const apiService = {
+  // Direct axios methods for flexibility
+  get: (url: string, config?: any) => api.get(url, config),
+  post: (url: string, data?: any, config?: any) => api.post(url, data, config),
+  put: (url: string, data?: any, config?: any) => api.put(url, data, config),
+  delete: (url: string, config?: any) => api.delete(url, config),
+  patch: (url: string, data?: any, config?: any) => api.patch(url, data, config),
+
   // Restaurant endpoints
   getRestaurants: async () => {
     const response = await api.get('/restaurants');
