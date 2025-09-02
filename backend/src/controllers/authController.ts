@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserService } from '../models/User';
 import { appConfig } from '../config';
+import { auditLogin } from '../middleware/audit';
 
 interface AuthenticatedRequest extends Request {
     user?: {
@@ -80,6 +81,9 @@ export const authController = {
 
             // Update last login
             await UserService.updateLastLogin(user.id);
+
+            // Log successful login
+            await auditLogin(req, user.id);
 
             // Generate JWT token
             const token = jwt.sign(

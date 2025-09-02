@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './auth';
 import inventoryRoutes from './inventory';
 import orderRoutes from './orders';
+import auditRoutes from './audit';
 import { authenticateToken } from '../middleware/auth';
 import { databaseService } from '../config';
 
@@ -13,6 +14,7 @@ router.use('/auth', authRoutes);
 // Protected routes - require authentication
 router.use('/inventory', authenticateToken, inventoryRoutes);
 router.use('/orders', authenticateToken, orderRoutes);
+router.use('/audit', authenticateToken, auditRoutes);
 
 // Health check route with database status
 router.get('/health', async (_req, res) => {
@@ -44,6 +46,7 @@ router.get('/', (_req, res) => {
       auth: '/api/auth',
       inventory: '/api/inventory',
       orders: '/api/orders',
+      audit: '/api/audit',
       health: '/api/health',
     },
     documentation: '/api/docs', // Future implementation
