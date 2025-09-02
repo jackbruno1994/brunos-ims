@@ -1,162 +1,392 @@
 import { Request, Response } from 'express';
-import { Item, StockMovement, Location, Category } from '../models/Inventory';
+import { db, safeDatabaseOperation, NotFoundError, ValidationError } from '../database';
+import { CreateItemRequest, UpdateItemRequest, ItemQueryParams } from '../database/types';
+
+interface AuthenticatedRequest extends Request {
+  user?: { id: string };
+}
 
 export const inventoryController = {
-    // Item Controllers
-    async getAllItems(req: Request, res: Response) {
-        try {
-            const items = await Item.find();
-            res.json(items);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching items', error });
-        }
-    },
+  // Item Controllers
+  async getAllItems(req: Request, res: Response) {
+    try {
+      const { categoryId, active, search, page = 1, limit = 50 } = req.query as any;
+      
+      const where: any = {};
+      if (categoryId) where.categoryId = categoryId;
+      if (active !== undefined) where.active = active === 'true';
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ];
+      }
 
-    async createItem(req: Request, res: Response) {
-        try {
-            const item = new Item(req.body);
-            await item.save();
-            res.status(201).json(item);
-        } catch (error) {
-            res.status(400).json({ message: 'Error creating item', error });
-        }
-    },
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      
+      const result = await safeDatabaseOperation(async () => {
+        const [items, total] = await Promise.all([
+          db.getPrismaClient().item.findMany({
+            where,
+            include: {
+              category: true,
+              conversions: true,
+            },
+            skip,
+            take: parseInt(limit),
+            orderBy: { name: 'asc' },
+          }),
+          db.getPrismaClient().item.count({ where }),
+        ]);
 
-    async getItem(req: Request, res: Response) {
-        try {
-            const item = await Item.findById(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
-            res.json(item);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching item', error });
-        }
-    },
+        return {
+          data: items,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            totalPages: Math.ceil(total / parseInt(limit)),
+            hasNext: skip + parseInt(limit) < total,
+            hasPrev: parseInt(page) > 1,
+          },
+        };
+      });
 
-    async updateItem(req: Request, res: Response) {
-        try {
-            const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!item) return res.status(404).json({ message: 'Item not found' });
-            res.json(item);
-        } catch (error) {
-            res.status(400).json({ message: 'Error updating item', error });
-        }
-    },
+      if (!result.success) {
+        return res.status(500).json({ message: 'Error fetching items', error: result.error?.message });
+      }
 
-    async deleteItem(req: Request, res: Response) {
-        try {
-            const item = await Item.findByIdAndDelete(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
-            res.json({ message: 'Item deleted successfully' });
-        } catch (error) {
-            res.status(500).json({ message: 'Error deleting item', error });
-        }
-    },
-
-    // Stock Movement Controllers
-    async recordStockMovement(req: Request, res: Response) {
-        try {
-            const movement = new StockMovement({
-                ...req.body,
-                createdBy: req.user?.id
-            });
-            await movement.save();
-            res.status(201).json(movement);
-        } catch (error) {
-            res.status(400).json({ message: 'Error recording stock movement', error });
-        }
-    },
-
-    async getStockLevels(req: Request, res: Response) {
-        try {
-            const movements = await StockMovement.aggregate([
-                { $group: {
-                    _id: '$itemId',
-                    totalStock: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$type', 'IN'] },
-                                '$quantity',
-                                { $multiply: ['$quantity', -1] }
-                            ]
-                        }
-                    }
-                }}
-            ]);
-            res.json(movements);
-        } catch (error) {
-            res.status(500).json({ message: 'Error calculating stock levels', error });
-        }
-    },
-
-    async getStockHistory(req: Request, res: Response) {
-        try {
-            const history = await StockMovement.find()
-                .populate('itemId')
-                .populate('createdBy', 'username')
-                .sort('-createdAt');
-            res.json(history);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching stock history', error });
-        }
-    },
-
-    // Location Controllers
-    async getAllLocations(req: Request, res: Response) {
-        try {
-            const locations = await Location.find({ active: true });
-            res.json(locations);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching locations', error });
-        }
-    },
-
-    async createLocation(req: Request, res: Response) {
-        try {
-            const location = new Location(req.body);
-            await location.save();
-            res.status(201).json(location);
-        } catch (error) {
-            res.status(400).json({ message: 'Error creating location', error });
-        }
-    },
-
-    async updateLocation(req: Request, res: Response) {
-        try {
-            const location = await Location.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
-            res.json(location);
-        } catch (error) {
-            res.status(400).json({ message: 'Error updating location', error });
-        }
-    },
-
-    async deleteLocation(req: Request, res: Response) {
-        try {
-            const location = await Location.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
-            res.json({ message: 'Location deleted successfully' });
-        } catch (error) {
-            res.status(500).json({ message: 'Error deleting location', error });
-        }
-    },
-
-    // Category Controllers
-    async getAllCategories(req: Request, res: Response) {
-        try {
-            const categories = await Category.find();
-            res.json(categories);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching categories', error });
-        }
-    },
-
-    async createCategory(req: Request, res: Response) {
-        try {
-            const category = new Category(req.body);
-            await category.save();
-            res.status(201).json(category);
-        } catch (error) {
-            res.status(400).json({ message: 'Error creating category', error });
-        }
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching items', error });
     }
+  },
+
+  async createItem(req: Request, res: Response) {
+    try {
+      const itemData: CreateItemRequest = req.body;
+      
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().item.create({
+          data: itemData,
+          include: {
+            category: true,
+            conversions: true,
+          },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ message: 'Error creating item', error: result.error?.message });
+      }
+
+      res.status(201).json(result.data);
+    } catch (error) {
+      res.status(400).json({ message: 'Error creating item', error });
+    }
+  },
+
+  async getItem(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      const result = await safeDatabaseOperation(async () => {
+        const item = await db.getPrismaClient().item.findUnique({
+          where: { id },
+          include: {
+            category: true,
+            conversions: true,
+            stockMoves: {
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+            },
+          },
+        });
+
+        if (!item) {
+          throw new NotFoundError('Item', id);
+        }
+
+        return item;
+      });
+
+      if (!result.success) {
+        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 500)
+          .json({ message: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching item', error });
+    }
+  },
+
+  async updateItem(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const updateData: UpdateItemRequest = req.body;
+      
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().item.update({
+          where: { id },
+          data: updateData,
+          include: {
+            category: true,
+            conversions: true,
+          },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+          .json({ message: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating item', error });
+    }
+  },
+
+  async deleteItem(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      const result = await safeDatabaseOperation(async () => {
+        // Soft delete by setting active to false
+        return await db.getPrismaClient().item.update({
+          where: { id },
+          data: { active: false },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+          .json({ message: result.error?.message });
+      }
+
+      res.json({ message: 'Item deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting item', error });
+    }
+  },
+
+  // Stock Movement Controllers
+  async recordStockMovement(req: AuthenticatedRequest, res: Response) {
+    try {
+      const movementData = {
+        ...req.body,
+        userId: req.user?.id,
+      };
+      
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().stockMovement.create({
+          data: movementData,
+          include: {
+            item: true,
+            sourceLocation: true,
+            destLocation: true,
+          },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ message: 'Error recording stock movement', error: result.error?.message });
+      }
+
+      res.status(201).json(result.data);
+    } catch (error) {
+      res.status(400).json({ message: 'Error recording stock movement', error });
+    }
+  },
+
+  async getStockLevels(req: Request, res: Response) {
+    try {
+      const result = await safeDatabaseOperation(async () => {
+        const stockLevels = await db.getPrismaClient().$queryRaw`
+          SELECT 
+            i.id as "itemId",
+            i.name as "itemName",
+            i."baseUom",
+            COALESCE(SUM(sm."qtyBase"), 0) as "currentStock"
+          FROM items i
+          LEFT JOIN stock_moves sm ON i.id = sm."itemId"
+          WHERE i.active = true
+          GROUP BY i.id, i.name, i."baseUom"
+          ORDER BY i.name
+        `;
+        
+        return stockLevels;
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: 'Error calculating stock levels', error: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error calculating stock levels', error });
+    }
+  },
+
+  async getStockHistory(req: Request, res: Response) {
+    try {
+      const { itemId, startDate, endDate, page = 1, limit = 50 } = req.query as any;
+      
+      const where: any = {};
+      if (itemId) where.itemId = itemId;
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate);
+        if (endDate) where.createdAt.lte = new Date(endDate);
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const result = await safeDatabaseOperation(async () => {
+        const [movements, total] = await Promise.all([
+          db.getPrismaClient().stockMovement.findMany({
+            where,
+            include: {
+              item: true,
+              sourceLocation: true,
+              destLocation: true,
+            },
+            skip,
+            take: parseInt(limit),
+            orderBy: { createdAt: 'desc' },
+          }),
+          db.getPrismaClient().stockMovement.count({ where }),
+        ]);
+
+        return {
+          data: movements,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            totalPages: Math.ceil(total / parseInt(limit)),
+            hasNext: skip + parseInt(limit) < total,
+            hasPrev: parseInt(page) > 1,
+          },
+        };
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: 'Error fetching stock history', error: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching stock history', error });
+    }
+  },
+
+  // Location Controllers
+  async getAllLocations(req: Request, res: Response) {
+    try {
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().location.findMany({
+          where: { active: true },
+          orderBy: { name: 'asc' },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: 'Error fetching locations', error: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching locations', error });
+    }
+  },
+
+  async createLocation(req: Request, res: Response) {
+    try {
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().location.create({
+          data: req.body,
+        });
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ message: 'Error creating location', error: result.error?.message });
+      }
+
+      res.status(201).json(result.data);
+    } catch (error) {
+      res.status(400).json({ message: 'Error creating location', error });
+    }
+  },
+
+  async updateLocation(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().location.update({
+          where: { id },
+          data: req.body,
+        });
+      });
+
+      if (!result.success) {
+        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+          .json({ message: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating location', error });
+    }
+  },
+
+  async deleteLocation(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().location.update({
+          where: { id },
+          data: { active: false },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+          .json({ message: result.error?.message });
+      }
+
+      res.json({ message: 'Location deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting location', error });
+    }
+  },
+
+  // Category Controllers
+  async getAllCategories(req: Request, res: Response) {
+    try {
+      const result = await safeDatabaseOperation(async () => {
+        return await db.getPrismaClient().category.findMany({
+          where: { active: true },
+          include: {
+            _count: {
+              select: { items: true },
+            },
+          },
+          orderBy: { name: 'asc' },
+        });
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: 'Error fetching categories', error: result.error?.message });
+      }
+
+      res.json(result.data);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching categories', error });
+    }
+  },
 };

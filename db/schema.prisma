@@ -1,0 +1,256 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core inventory items
+model Item {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  sku         String    @unique
+  baseUom     String    // Base unit of measure (kg, l, pcs, etc.)
+  active      Boolean   @default(true)
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  category       Category?        @relation(fields: [categoryId], references: [id])
+  stockMoves     StockMovement[]
+  conversions    UomConversion[]
+  purchaseItems  PurchaseOrderItem[]
+  receiptItems   ReceiptItem[]
+  recipeItems    RecipeItem[]
+  counts         Count[]
+  wastageLogs    WastageLog[]
+
+  @@map("items")
+}
+
+// Item categories for organization
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items Item[]
+
+  @@map("categories")
+}
+
+// Storage locations
+model Location {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stockMovesSource StockMovement[] @relation("SourceLocation")
+  stockMovesDest   StockMovement[] @relation("DestLocation")
+  counts           Count[]
+
+  @@map("locations")
+}
+
+// Suppliers for purchasing
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  contactInfo Json?    // Flexible contact information
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// Purchase orders
+model PurchaseOrder {
+  id         String    @id @default(cuid())
+  orderNumber String   @unique
+  supplierId String
+  status     String    @default("draft") // draft, sent, received, cancelled
+  orderDate  DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  items    PurchaseOrderItem[]
+  receipts Receipt[]
+
+  @@map("purchase_orders")
+}
+
+// Purchase order line items
+model PurchaseOrderItem {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  itemId          String
+  qtyOrdered      Decimal // Always in base units
+  costPerBase     Decimal // Cost per base unit
+  notes           String?
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  item          Item          @relation(fields: [itemId], references: [id])
+
+  @@map("purchase_order_items")
+}
+
+// Receipts for goods received
+model Receipt {
+  id              String   @id @default(cuid())
+  receiptNumber   String   @unique
+  purchaseOrderId String?
+  receivedDate    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  items         ReceiptItem[]
+
+  @@map("receipts")
+}
+
+// Receipt line items
+model ReceiptItem {
+  id           String  @id @default(cuid())
+  receiptId    String
+  itemId       String
+  qtyReceived  Decimal // Always in base units
+  costPerBase  Decimal // Actual cost per base unit
+  notes        String?
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@map("receipt_items")
+}
+
+// All inventory movements (core audit trail)
+model StockMovement {
+  id          String   @id @default(cuid())
+  itemId      String
+  qtyBase     Decimal  // Positive for IN, negative for OUT
+  costPerBase Decimal? // Cost per base unit
+  source      String?  // Source location/system
+  dest        String?  // Destination location/system
+  reason      String   // Purchase, sale, transfer, adjustment, production, etc.
+  reference   String?  // Reference to source document (PO, receipt, etc.)
+  createdAt   DateTime @default(now())
+  userId      String?  // Who made the movement
+
+  item           Item      @relation(fields: [itemId], references: [id])
+  sourceLocation Location? @relation("SourceLocation", fields: [source], references: [id])
+  destLocation   Location? @relation("DestLocation", fields: [dest], references: [id])
+
+  @@map("stock_moves")
+}
+
+// Unit of measure conversions
+model UomConversion {
+  id          String  @id @default(cuid())
+  itemId      String
+  fromUom     String  // e.g., "box"
+  toUom       String  // e.g., "pcs" (should match item.baseUom)
+  factor      Decimal // How many base units in one fromUom
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, fromUom])
+  @@map("uom_conversions")
+}
+
+// Recipes for production
+model Recipe {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  description    String?
+  yieldUom       String   // Unit of the output
+  yieldQtyBase   Decimal  // How much this recipe produces in base units
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items   RecipeItem[]
+  batches Batch[]
+
+  @@map("recipes")
+}
+
+// Recipe ingredients
+model RecipeItem {
+  id       String  @id @default(cuid())
+  recipeId String
+  itemId   String
+  qtyBase  Decimal // Quantity needed in base units
+  lossPct  Decimal @default(0) // Expected loss percentage
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@unique([recipeId, itemId])
+  @@map("recipe_items")
+}
+
+// Production batches
+model Batch {
+  id               String   @id @default(cuid())
+  batchNumber      String   @unique
+  recipeId         String
+  producedQtyBase  Decimal  // Actual quantity produced
+  startDate        DateTime @default(now())
+  completedDate    DateTime?
+  status           String   @default("in_progress") // in_progress, completed, cancelled
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  recipe Recipe @relation(fields: [recipeId], references: [id])
+
+  @@map("batches")
+}
+
+// Stock take counts
+model Count {
+  id         String   @id @default(cuid())
+  locationId String
+  itemId     String
+  qtyBase    Decimal  // Counted quantity in base units
+  countDate  DateTime @default(now())
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id])
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("counts")
+}
+
+// Wastage tracking
+model WastageLog {
+  id        String   @id @default(cuid())
+  itemId    String
+  qtyBase   Decimal  // Quantity wasted in base units
+  reason    String   // Expired, damaged, spillage, etc.
+  notes     String?
+  createdAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@map("wastage_logs")
+}
