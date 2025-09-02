@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core entity models based on Bruno's IMS requirements
+
+model Supplier {
+  id             String          @id @default(cuid())
+  name           String
+  contactEmail   String?
+  contactPhone   String?
+  address        String?
+  country        String?
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  
+  purchaseOrders PurchaseOrder[]
+  
+  @@map("suppliers")
+}
+
+model UOM {
+  id              String       @id @default(cuid())
+  name            String       @unique
+  abbreviation    String       @unique
+  type            String       // weight, volume, count, etc.
+  baseUnit        Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  items           Item[]
+  conversions     Conversion[]
+  fromConversions Conversion[] @relation("FromUOM")
+  
+  @@map("uom")
+}
+
+model Conversion {
+  id          String   @id @default(cuid())
+  fromUomId   String
+  toUomId     String
+  factor      Decimal  @db.Decimal(10, 6)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  fromUom UOM @relation("FromUOM", fields: [fromUomId], references: [id], onDelete: Cascade)
+  toUom   UOM @relation(fields: [toUomId], references: [id], onDelete: Cascade)
+  
+  @@unique([fromUomId, toUomId])
+  @@map("conversions")
+}
+
+model Location {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  locationType  String        // warehouse, kitchen, prep, etc.
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  stockMoves    StockMove[]
+  counts        Count[]
+  
+  @@map("locations")
+}
+
+model Item {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  sku          String?       @unique
+  category     String?
+  uomId        String
+  minStock     Decimal?      @db.Decimal(10, 3)
+  maxStock     Decimal?      @db.Decimal(10, 3)
+  costPerBase  Decimal?      @db.Decimal(10, 2)
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  uom          UOM           @relation(fields: [uomId], references: [id])
+  stockMoves   StockMove[]
+  recipeItems  RecipeItem[]
+  counts       Count[]
+  wastageLogs  WastageLog[]
+  
+  @@map("items")
+}
+
+model PurchaseOrder {
+  id              String            @id @default(cuid())
+  orderNumber     String            @unique
+  supplierId      String
+  status          String            @default("pending") // pending, ordered, received, cancelled
+  orderDate       DateTime          @default(now())
+  expectedDate    DateTime?
+  totalAmount     Decimal?          @db.Decimal(10, 2)
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  supplier        Supplier          @relation(fields: [supplierId], references: [id])
+  receipts        Receipt[]
+  
+  @@map("purchase_orders")
+}
+
+model Receipt {
+  id              String      @id @default(cuid())
+  purchaseOrderId String
+  receiptNumber   String      @unique
+  receivedDate    DateTime    @default(now())
+  receivedBy      String?     // user ID who received
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  
+  @@map("receipts")
+}
+
+model StockMove {
+  id           String    @id @default(cuid())
+  itemId       String
+  qtyBase      Decimal   @db.Decimal(10, 3)
+  costPerBase  Decimal?  @db.Decimal(10, 2)
+  source       String?   // location or external
+  destination  String?   // location or external
+  reason       String    // received, transferred, consumed, etc.
+  reference    String?   // PO number, recipe batch, etc.
+  locationId   String?
+  createdAt    DateTime  @default(now())
+  
+  item         Item      @relation(fields: [itemId], references: [id])
+  location     Location? @relation(fields: [locationId], references: [id])
+  
+  @@map("stock_moves")
+}
+
+model Recipe {
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  yieldUom      String       // UOM for the recipe output
+  yieldQtyBase  Decimal      @db.Decimal(10, 3)
+  instructions  String?
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  items         RecipeItem[]
+  batches       Batch[]
+  
+  @@map("recipes")
+}
+
+model RecipeItem {
+  id         String   @id @default(cuid())
+  recipeId   String
+  itemId     String
+  qtyBase    Decimal  @db.Decimal(10, 3)
+  lossPct    Decimal? @db.Decimal(5, 2) @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  item       Item     @relation(fields: [itemId], references: [id])
+  
+  @@unique([recipeId, itemId])
+  @@map("recipe_items")
+}
+
+model Batch {
+  id              String   @id @default(cuid())
+  recipeId        String
+  batchNumber     String   @unique
+  producedQtyBase Decimal  @db.Decimal(10, 3)
+  productionDate  DateTime @default(now())
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  recipe          Recipe   @relation(fields: [recipeId], references: [id])
+  
+  @@map("batches")
+}
+
+model Count {
+  id         String   @id @default(cuid())
+  locationId String
+  itemId     String
+  qtyBase    Decimal  @db.Decimal(10, 3)
+  countDate  DateTime @default(now())
+  countedBy  String?  // user ID
+  variance   Decimal? @db.Decimal(10, 3)
+  notes      String?
+  createdAt  DateTime @default(now())
+  
+  location   Location @relation(fields: [locationId], references: [id])
+  item       Item     @relation(fields: [itemId], references: [id])
+  
+  @@map("counts")
+}
+
+model WastageLog {
+  id        String   @id @default(cuid())
+  itemId    String
+  qtyBase   Decimal  @db.Decimal(10, 3)
+  reason    String
+  cost      Decimal? @db.Decimal(10, 2)
+  wasteDate DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+  
+  item      Item     @relation(fields: [itemId], references: [id])
+  
+  @@map("wastage_logs")
+}
