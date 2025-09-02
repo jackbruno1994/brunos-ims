@@ -39,11 +39,19 @@ export class ConflictError extends DatabaseError {
 
 // Map Prisma errors to application errors
 export function handlePrismaError(error: unknown): DatabaseError {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
+  // Prisma v5 error types - check if they exist before using
+  const PrismaClientKnownRequestError = (Prisma as any).PrismaClientKnownRequestError;
+  const PrismaClientUnknownRequestError = (Prisma as any).PrismaClientUnknownRequestError;
+  const PrismaClientRustPanicError = (Prisma as any).PrismaClientRustPanicError;
+  const PrismaClientInitializationError = (Prisma as any).PrismaClientInitializationError;
+  const PrismaClientValidationError = (Prisma as any).PrismaClientValidationError;
+
+  if (PrismaClientKnownRequestError && error instanceof PrismaClientKnownRequestError) {
+    const prismaError = error as any;
+    switch (prismaError.code) {
       case 'P2002':
         // Unique constraint violation
-        return new ConflictError(`Unique constraint violation: ${error.meta?.target}`);
+        return new ConflictError(`Unique constraint violation: ${prismaError.meta?.target}`);
       
       case 'P2025':
         // Record not found
@@ -51,7 +59,7 @@ export function handlePrismaError(error: unknown): DatabaseError {
       
       case 'P2003':
         // Foreign key constraint violation
-        return new ValidationError(`Foreign key constraint violation: ${error.meta?.field_name}`);
+        return new ValidationError(`Foreign key constraint violation: ${prismaError.meta?.field_name}`);
       
       case 'P2014':
         // Invalid ID
@@ -67,27 +75,28 @@ export function handlePrismaError(error: unknown): DatabaseError {
       
       case 'P2004':
         // Constraint failed
-        return new ValidationError(`Database constraint failed: ${error.message}`);
+        return new ValidationError(`Database constraint failed: ${prismaError.message}`);
       
       default:
-        return new DatabaseError(`Database error: ${error.message}`, error.code);
+        return new DatabaseError(`Database error: ${prismaError.message}`, prismaError.code);
     }
   }
 
-  if (error instanceof Prisma.PrismaClientUnknownRequestError) {
+  if (PrismaClientUnknownRequestError && error instanceof PrismaClientUnknownRequestError) {
     return new DatabaseError('Unknown database error occurred', 'UNKNOWN_ERROR');
   }
 
-  if (error instanceof Prisma.PrismaClientRustPanicError) {
+  if (PrismaClientRustPanicError && error instanceof PrismaClientRustPanicError) {
     return new DatabaseError('Database engine error', 'ENGINE_ERROR', false);
   }
 
-  if (error instanceof Prisma.PrismaClientInitializationError) {
+  if (PrismaClientInitializationError && error instanceof PrismaClientInitializationError) {
     return new DatabaseError('Database initialization error', 'INIT_ERROR', false);
   }
 
-  if (error instanceof Prisma.PrismaClientValidationError) {
-    return new ValidationError(`Validation error: ${error.message}`);
+  if (PrismaClientValidationError && error instanceof PrismaClientValidationError) {
+    const prismaError = error as any;
+    return new ValidationError(`Validation error: ${prismaError.message}`);
   }
 
   // If it's already a DatabaseError, return as is

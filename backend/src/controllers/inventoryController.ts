@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { db, safeDatabaseOperation, NotFoundError, ValidationError } from '../database';
-import { CreateItemRequest, UpdateItemRequest, ItemQueryParams } from '../database/types';
+import { db, safeDatabaseOperation, NotFoundError } from '../database';
+import { CreateItemRequest, UpdateItemRequest } from '../database/types';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -8,7 +8,7 @@ interface AuthenticatedRequest extends Request {
 
 export const inventoryController = {
   // Item Controllers
-  async getAllItems(req: Request, res: Response) {
+  async getAllItems(req: Request, res: Response): Promise<void> {
     try {
       const { categoryId, active, search, page = 1, limit = 50 } = req.query as any;
       
@@ -54,7 +54,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(500).json({ message: 'Error fetching items', error: result.error?.message });
+        res.status(500).json({ message: 'Error fetching items', error: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -63,7 +64,7 @@ export const inventoryController = {
     }
   },
 
-  async createItem(req: Request, res: Response) {
+  async createItem(req: Request, res: Response): Promise<void> {
     try {
       const itemData: CreateItemRequest = req.body;
       
@@ -78,7 +79,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(400).json({ message: 'Error creating item', error: result.error?.message });
+        res.status(400).json({ message: 'Error creating item', error: result.error?.message });
+        return;
       }
 
       res.status(201).json(result.data);
@@ -87,7 +89,7 @@ export const inventoryController = {
     }
   },
 
-  async getItem(req: Request, res: Response) {
+  async getItem(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       
@@ -112,8 +114,9 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 500)
+        res.status(result.error?.code === 'NOT_FOUND' ? 404 : 500)
           .json({ message: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -122,7 +125,7 @@ export const inventoryController = {
     }
   },
 
-  async updateItem(req: Request, res: Response) {
+  async updateItem(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const updateData: UpdateItemRequest = req.body;
@@ -139,8 +142,9 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+        res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
           .json({ message: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -149,7 +153,7 @@ export const inventoryController = {
     }
   },
 
-  async deleteItem(req: Request, res: Response) {
+  async deleteItem(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       
@@ -162,8 +166,9 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+        res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
           .json({ message: result.error?.message });
+        return;
       }
 
       res.json({ message: 'Item deleted successfully' });
@@ -173,7 +178,7 @@ export const inventoryController = {
   },
 
   // Stock Movement Controllers
-  async recordStockMovement(req: AuthenticatedRequest, res: Response) {
+  async recordStockMovement(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const movementData = {
         ...req.body,
@@ -192,7 +197,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(400).json({ message: 'Error recording stock movement', error: result.error?.message });
+        res.status(400).json({ message: 'Error recording stock movement', error: result.error?.message });
+        return;
       }
 
       res.status(201).json(result.data);
@@ -201,7 +207,7 @@ export const inventoryController = {
     }
   },
 
-  async getStockLevels(req: Request, res: Response) {
+  async getStockLevels(_req: Request, res: Response): Promise<void> {
     try {
       const result = await safeDatabaseOperation(async () => {
         const stockLevels = await db.getPrismaClient().$queryRaw`
@@ -221,7 +227,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(500).json({ message: 'Error calculating stock levels', error: result.error?.message });
+        res.status(500).json({ message: 'Error calculating stock levels', error: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -230,7 +237,7 @@ export const inventoryController = {
     }
   },
 
-  async getStockHistory(req: Request, res: Response) {
+  async getStockHistory(req: Request, res: Response): Promise<void> {
     try {
       const { itemId, startDate, endDate, page = 1, limit = 50 } = req.query as any;
       
@@ -274,7 +281,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(500).json({ message: 'Error fetching stock history', error: result.error?.message });
+        res.status(500).json({ message: 'Error fetching stock history', error: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -284,7 +292,7 @@ export const inventoryController = {
   },
 
   // Location Controllers
-  async getAllLocations(req: Request, res: Response) {
+  async getAllLocations(_req: Request, res: Response): Promise<void> {
     try {
       const result = await safeDatabaseOperation(async () => {
         return await db.getPrismaClient().location.findMany({
@@ -294,7 +302,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(500).json({ message: 'Error fetching locations', error: result.error?.message });
+        res.status(500).json({ message: 'Error fetching locations', error: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -303,7 +312,7 @@ export const inventoryController = {
     }
   },
 
-  async createLocation(req: Request, res: Response) {
+  async createLocation(req: Request, res: Response): Promise<void> {
     try {
       const result = await safeDatabaseOperation(async () => {
         return await db.getPrismaClient().location.create({
@@ -312,7 +321,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(400).json({ message: 'Error creating location', error: result.error?.message });
+        res.status(400).json({ message: 'Error creating location', error: result.error?.message });
+        return;
       }
 
       res.status(201).json(result.data);
@@ -321,7 +331,7 @@ export const inventoryController = {
     }
   },
 
-  async updateLocation(req: Request, res: Response) {
+  async updateLocation(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       
@@ -333,8 +343,9 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+        res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
           .json({ message: result.error?.message });
+        return;
       }
 
       res.json(result.data);
@@ -343,7 +354,7 @@ export const inventoryController = {
     }
   },
 
-  async deleteLocation(req: Request, res: Response) {
+  async deleteLocation(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       
@@ -355,8 +366,9 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
+        res.status(result.error?.code === 'NOT_FOUND' ? 404 : 400)
           .json({ message: result.error?.message });
+        return;
       }
 
       res.json({ message: 'Location deleted successfully' });
@@ -366,7 +378,7 @@ export const inventoryController = {
   },
 
   // Category Controllers
-  async getAllCategories(req: Request, res: Response) {
+  async getAllCategories(_req: Request, res: Response): Promise<void> {
     try {
       const result = await safeDatabaseOperation(async () => {
         return await db.getPrismaClient().category.findMany({
@@ -381,7 +393,8 @@ export const inventoryController = {
       });
 
       if (!result.success) {
-        return res.status(500).json({ message: 'Error fetching categories', error: result.error?.message });
+        res.status(500).json({ message: 'Error fetching categories', error: result.error?.message });
+        return;
       }
 
       res.json(result.data);

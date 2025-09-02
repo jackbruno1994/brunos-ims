@@ -42,7 +42,7 @@ async function main() {
     },
   });
 
-  const freezer = await prisma.location.upsert({
+  await prisma.location.upsert({
     where: { name: 'Freezer' },
     update: {},
     create: {
@@ -75,7 +75,7 @@ async function main() {
     },
   });
 
-  const qualityMeats = await prisma.supplier.upsert({
+  await prisma.supplier.upsert({
     where: { name: 'Quality Meats Co.' },
     update: {},
     create: {
