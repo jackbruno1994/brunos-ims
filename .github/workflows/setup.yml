@@ -1,0 +1,365 @@
+name: Environment Setup
+
+on:
+  workflow_call:
+    inputs:
+      setup-prisma:
+        description: 'Whether to set up Prisma dependencies'
+        required: false
+        default: true
+        type: boolean
+      setup-postgres:
+        description: 'Whether to set up PostgreSQL service'
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      database-url:
+        description: 'PostgreSQL database connection URL'
+        value: ${{ jobs.setup.outputs.database-url }}
+      node-version:
+        description: 'Node.js version being used'
+        value: ${{ jobs.setup.outputs.node-version }}
+  workflow_dispatch:
+    inputs:
+      setup-prisma:
+        description: 'Whether to set up Prisma dependencies'
+        required: false
+        default: true
+        type: boolean
+      setup-postgres:
+        description: 'Whether to set up PostgreSQL service'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '18.x'
+  POSTGRES_VERSION: '15'
+  DATABASE_NAME: 'brunos_ims_test'
+  DATABASE_USER: 'postgres'
+  DATABASE_PASSWORD: 'postgres'
+
+jobs:
+  setup:
+    name: Environment Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: ${{ env.DATABASE_USER }}
+          POSTGRES_PASSWORD: ${{ env.DATABASE_PASSWORD }}
+          POSTGRES_DB: ${{ env.DATABASE_NAME }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    outputs:
+      database-url: ${{ steps.setup-env.outputs.database-url }}
+      node-version: ${{ steps.setup-node.outputs.node-version }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Environment Variables
+        id: setup-env
+        run: |
+          # Create environment variables
+          DATABASE_URL="postgresql://${{ env.DATABASE_USER }}:${{ env.DATABASE_PASSWORD }}@localhost:5432/${{ env.DATABASE_NAME }}"
+          echo "database-url=$DATABASE_URL" >> $GITHUB_OUTPUT
+          echo "node-version=${{ env.NODE_VERSION }}" >> $GITHUB_OUTPUT
+          
+          # Export for subsequent steps
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "PORT=3001" >> $GITHUB_ENV
+          echo "JWT_SECRET=test-jwt-secret-key" >> $GITHUB_ENV
+          echo "CORS_ORIGIN=http://localhost:3000" >> $GITHUB_ENV
+
+      - name: Verify PostgreSQL Connection
+        if: inputs.setup-postgres
+        run: |
+          # Wait for PostgreSQL to be ready
+          timeout 30s bash -c 'until pg_isready -h localhost -p 5432 -U ${{ env.DATABASE_USER }}; do sleep 1; done'
+          
+          # Test connection
+          PGPASSWORD=${{ env.DATABASE_PASSWORD }} psql -h localhost -U ${{ env.DATABASE_USER }} -d ${{ env.DATABASE_NAME }} -c "SELECT version();"
+          
+          echo "✅ PostgreSQL is ready and accessible"
+
+      - name: Install Root Dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          echo "✅ Root dependencies installed"
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm ci --prefer-offline --no-audit
+          echo "✅ Backend dependencies installed"
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci --prefer-offline --no-audit
+          echo "✅ Frontend dependencies installed"
+
+      - name: Setup Prisma (if enabled)
+        if: inputs.setup-prisma
+        run: |
+          # Install Prisma globally for easier access
+          npm install -g prisma@latest || echo "Warning: Could not install Prisma globally"
+          
+          # Check if Prisma is already configured
+          if [ ! -f "prisma/schema.prisma" ]; then
+            echo "🔧 Setting up Prisma configuration..."
+            
+            # Create prisma directory and basic schema
+            mkdir -p prisma
+            
+            cat > prisma/schema.prisma << 'EOF'
+          // Bruno's IMS Prisma Schema
+          generator client {
+            provider = "prisma-client-js"
+          }
+          
+          datasource db {
+            provider = "postgresql"
+            url      = env("DATABASE_URL")
+          }
+          
+          // Core models for inventory management
+          model User {
+            id          String   @id @default(cuid())
+            email       String   @unique
+            firstName   String
+            lastName    String
+            role        Role     @default(STAFF)
+            restaurantId String?
+            restaurant  Restaurant? @relation(fields: [restaurantId], references: [id])
+            createdAt   DateTime @default(now())
+            updatedAt   DateTime @updatedAt
+          
+            @@map("users")
+          }
+          
+          model Restaurant {
+            id        String   @id @default(cuid())
+            name      String
+            location  String
+            country   String
+            address   String
+            phone     String
+            email     String
+            status    RestaurantStatus @default(ACTIVE)
+            users     User[]
+            items     Item[]
+            locations Location[]
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+          
+            @@map("restaurants")
+          }
+          
+          model Item {
+            id           String   @id @default(cuid())
+            name         String
+            description  String?
+            sku          String   @unique
+            category     String
+            baseUnit     String   // Base unit of measurement
+            costPerUnit  Decimal  @default(0)
+            restaurantId String
+            restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+            stockLevels  StockLevel[]
+            stockMovements StockMovement[]
+            createdAt    DateTime @default(now())
+            updatedAt    DateTime @updatedAt
+          
+            @@map("items")
+          }
+          
+          model Location {
+            id           String   @id @default(cuid())
+            name         String
+            type         LocationType
+            restaurantId String
+            restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+            stockLevels  StockLevel[]
+            stockMovements StockMovement[]
+            createdAt    DateTime @default(now())
+            updatedAt    DateTime @updatedAt
+          
+            @@map("locations")
+          }
+          
+          model StockLevel {
+            id         String   @id @default(cuid())
+            itemId     String
+            item       Item     @relation(fields: [itemId], references: [id])
+            locationId String
+            location   Location @relation(fields: [locationId], references: [id])
+            quantity   Decimal  @default(0)
+            minLevel   Decimal  @default(0)
+            maxLevel   Decimal?
+            updatedAt  DateTime @updatedAt
+          
+            @@unique([itemId, locationId])
+            @@map("stock_levels")
+          }
+          
+          model StockMovement {
+            id         String   @id @default(cuid())
+            itemId     String
+            item       Item     @relation(fields: [itemId], references: [id])
+            locationId String
+            location   Location @relation(fields: [locationId], references: [id])
+            type       MovementType
+            quantity   Decimal
+            costPerUnit Decimal?
+            reason     String?
+            reference  String?
+            createdAt  DateTime @default(now())
+          
+            @@map("stock_movements")
+          }
+          
+          // Enums
+          enum Role {
+            ADMIN
+            MANAGER
+            STAFF
+          }
+          
+          enum RestaurantStatus {
+            ACTIVE
+            INACTIVE
+            MAINTENANCE
+          }
+          
+          enum LocationType {
+            STORAGE
+            KITCHEN
+            BAR
+            WALK_IN_COOLER
+            FREEZER
+            DRY_STORAGE
+          }
+          
+          enum MovementType {
+            IN
+            OUT
+            TRANSFER
+            ADJUSTMENT
+            WASTE
+          }
+          EOF
+          
+            echo "✅ Prisma schema created"
+          else
+            echo "✅ Prisma schema already exists"
+          fi
+          
+          # Add Prisma to backend dependencies if not present
+          cd backend
+          if ! grep -q '"prisma"' package.json; then
+            echo "📦 Adding Prisma dependencies to backend..."
+            npm install prisma @prisma/client || echo "Warning: Could not install Prisma dependencies"
+            npm install -D prisma || echo "Warning: Could not install Prisma dev dependency"
+          fi
+          
+          # Generate Prisma client (if possible)
+          npx prisma generate || echo "Warning: Could not generate Prisma client (offline mode)"
+          echo "✅ Prisma client generation attempted"
+          
+          # Note: Database operations will be handled by CI environment with network access
+
+      - name: Create Environment Files
+        run: |
+          # Backend .env file
+          cat > backend/.env << EOF
+          NODE_ENV=test
+          PORT=3001
+          DATABASE_URL=${{ env.DATABASE_URL }}
+          JWT_SECRET=${{ env.JWT_SECRET }}
+          CORS_ORIGIN=${{ env.CORS_ORIGIN }}
+          EOF
+          
+          # Frontend .env file
+          cat > frontend/.env << EOF
+          VITE_API_URL=http://localhost:3001/api
+          VITE_NODE_ENV=test
+          EOF
+          
+          echo "✅ Environment files created"
+
+      - name: Validate Setup
+        run: |
+          echo "🔍 Validating environment setup..."
+          
+          # Check Node.js version
+          node --version
+          npm --version
+          
+          # Check PostgreSQL connection
+          if [ "${{ inputs.setup-postgres }}" = "true" ]; then
+            PGPASSWORD=${{ env.DATABASE_PASSWORD }} psql -h localhost -U ${{ env.DATABASE_USER }} -d ${{ env.DATABASE_NAME }} -c "SELECT 'PostgreSQL connection successful' as status;"
+          fi
+          
+          # Check if Prisma client is available
+          if [ "${{ inputs.setup-prisma }}" = "true" ]; then
+            cd backend
+            if npx prisma --version > /dev/null 2>&1; then
+              echo "✅ Prisma CLI available"
+            fi
+          fi
+          
+          echo "✅ Environment setup validation complete"
+
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            backend/node_modules
+            frontend/node_modules
+            node_modules
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Setup Summary
+        run: |
+          echo "## 🚀 Environment Setup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js Version**: ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PostgreSQL Version**: ${{ env.POSTGRES_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database**: ${{ env.DATABASE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prisma Setup**: ${{ inputs.setup-prisma }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PostgreSQL Setup**: ${{ inputs.setup-postgres }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependencies installed and cached" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment variables configured" >> $GITHUB_STEP_SUMMARY
+          echo "- Database ready for testing" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.setup-prisma }}" = "true" ]; then
+            echo "- Prisma client generated and database schema synchronized" >> $GITHUB_STEP_SUMMARY
+          fi

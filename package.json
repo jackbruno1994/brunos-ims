@@ -31,7 +31,12 @@
     "security:audit": "npm audit --audit-level=moderate",
     "security:scan": "npm run security:audit && snyk test",
     "clean": "rimraf backend/dist frontend/dist coverage docs/api docs/code",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "db:setup": "npx prisma generate && npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "npx prisma db seed",
+    "db:reset": "npx prisma migrate reset --force",
+    "db:studio": "npx prisma studio"
   },
   "workspaces": [
     "backend",
@@ -57,8 +62,9 @@
     "rimraf": "^5.0.5",
     "snyk": "^1.1244.0",
     "swagger-jsdoc": "^6.2.8",
-    "typedoc": "^0.25.2",
-    "typescript": "^5.2.2"
+    "tsx": "^4.20.5",
+    "typedoc": "^0.26.2",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -82,5 +88,8 @@
   "bugs": {
     "url": "https://github.com/jackbruno1994/brunos-ims/issues"
   },
-  "homepage": "https://github.com/jackbruno1994/brunos-ims#readme"
+  "homepage": "https://github.com/jackbruno1994/brunos-ims#readme",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
 }
