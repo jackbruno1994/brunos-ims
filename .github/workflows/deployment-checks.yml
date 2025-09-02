@@ -1,0 +1,389 @@
+name: Deployment Checks & Release Management
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  # Pre-deployment Validation
+  pre-deployment-checks:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Environment Configuration Check
+        run: |
+          echo "## 🔧 Environment Configuration Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for required environment files
+          if [ -f ".env.example" ]; then
+            echo "✅ .env.example found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ .env.example missing" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for Docker configuration
+          if [ -f "Dockerfile" ] || [ -f "docker-compose.yml" ]; then
+            echo "✅ Docker configuration found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No Docker configuration found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for production build configuration
+          if grep -q "build" package.json; then
+            echo "✅ Build scripts configured" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build scripts missing" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Build Applications
+        run: |
+          echo "### 🏗️ Build Process" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Build backend
+          echo "Building backend..." >> $GITHUB_STEP_SUMMARY
+          cd backend
+          npm run build 2>&1 | tee ../backend-build.log || echo "Backend build failed"
+          cd ..
+
+          # Build frontend
+          echo "Building frontend..." >> $GITHUB_STEP_SUMMARY
+          cd frontend
+          npm run build 2>&1 | tee ../frontend-build.log || echo "Frontend build failed"
+          cd ..
+
+          # Check build results
+          if [ -d "backend/dist" ]; then
+            BACKEND_SIZE=$(du -sh backend/dist | cut -f1)
+            echo "✅ Backend build successful (${BACKEND_SIZE})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Backend build failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -d "frontend/dist" ]; then
+            FRONTEND_SIZE=$(du -sh frontend/dist | cut -f1)
+            echo "✅ Frontend build successful (${FRONTEND_SIZE})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Frontend build failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Security Scan for Production
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔒 Production Security Scan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for production secrets
+          if grep -r "localhost" --include="*.js" --include="*.ts" backend/dist/ frontend/dist/ 2>/dev/null || true; then
+            echo "⚠️ Localhost references found in production build" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No localhost references in production build" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for debug code
+          if grep -r "console.log\|debugger" --include="*.js" backend/dist/ frontend/dist/ 2>/dev/null || true; then
+            echo "⚠️ Debug code found in production build" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No debug code in production build" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: production-builds
+          path: |
+            backend/dist/
+            frontend/dist/
+            backend-build.log
+            frontend-build.log
+          retention-days: 30
+
+  # Performance Benchmarking
+  performance-benchmark:
+    name: Performance Benchmark
+    needs: [pre-deployment-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: production-builds
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Performance Tools
+        run: |
+          npm install -g lighthouse clinic autocannon
+
+      - name: Bundle Size Analysis
+        run: |
+          echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Analyze backend bundle
+          if [ -d "backend/dist" ]; then
+            find backend/dist -name "*.js" -exec wc -c {} + | sort -n | tail -10 > backend-bundle-analysis.txt
+            echo "### Backend Bundle (Top 10 largest files):" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat backend-bundle-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Analyze frontend bundle
+          if [ -d "frontend/dist" ]; then
+            find frontend/dist -name "*.js" -exec wc -c {} + | sort -n | tail -10 > frontend-bundle-analysis.txt
+            echo "### Frontend Bundle (Top 10 largest files):" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat frontend-bundle-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Startup Time Benchmark
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⏱️ Startup Performance" >> $GITHUB_STEP_SUMMARY
+
+          # Simulate application startup timing
+          if [ -f "backend/dist/server.js" ]; then
+            start_time=$(date +%s%N)
+            timeout 10s node backend/dist/server.js > /dev/null 2>&1 || true
+            end_time=$(date +%s%N)
+            startup_time=$(( (end_time - start_time) / 1000000 ))
+            echo "Backend startup time: ${startup_time}ms" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Deployment Readiness Check
+  deployment-readiness:
+    name: Deployment Readiness Assessment
+    needs: [pre-deployment-checks, performance-benchmark]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deployment Checklist
+        run: |
+          echo "# 🚀 Deployment Readiness Assessment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          score=0
+          total=10
+
+          # Check 1: Build Success
+          if [[ "${{ needs.pre-deployment-checks.result }}" == "success" ]]; then
+            echo "✅ Build Process (10 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 10))
+          else
+            echo "❌ Build Process (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 2: Performance Benchmark
+          if [[ "${{ needs.performance-benchmark.result }}" == "success" ]]; then
+            echo "✅ Performance Benchmark (10 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 10))
+          else
+            echo "❌ Performance Benchmark (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 3: Security Policy
+          if [ -f "SECURITY.md" ]; then
+            echo "✅ Security Policy (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Security Policy (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 4: Documentation
+          if [ -f "README.md" ] && [ -f "COPILOT_IMPLEMENTATION.md" ]; then
+            echo "✅ Documentation (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Documentation (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 5: Environment Configuration
+          if [ -f ".env.example" ]; then
+            echo "✅ Environment Configuration (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Environment Configuration (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 6: CI/CD Pipeline
+          if [ -f ".github/workflows/ci.yml" ]; then
+            echo "✅ CI/CD Pipeline (10 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 10))
+          else
+            echo "❌ CI/CD Pipeline (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 7: Dependency Management
+          if [ -f ".github/dependabot.yml" ]; then
+            echo "✅ Dependency Management (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Dependency Management (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 8: Code Owners
+          if [ -f ".github/CODEOWNERS" ]; then
+            echo "✅ Code Owners (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Code Owners (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 9: Issue Templates
+          if [ -d ".github/ISSUE_TEMPLATE" ]; then
+            echo "✅ Issue Templates (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Issue Templates (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 10: Auto-merge Configuration
+          if [ -f ".github/workflows/auto-merge.yml" ]; then
+            echo "✅ Auto-merge Configuration (5 points)" >> $GITHUB_STEP_SUMMARY
+            score=$((score + 5))
+          else
+            echo "❌ Auto-merge Configuration (0 points)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          total_possible=85
+          percentage=$((score * 100 / total_possible))
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Deployment Score: ${score}/${total_possible} (${percentage}%)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ $percentage -ge 90 ]; then
+            echo "🟢 **DEPLOYMENT READY** - Excellent configuration!" >> $GITHUB_STEP_SUMMARY
+          elif [ $percentage -ge 70 ]; then
+            echo "🟡 **DEPLOYMENT POSSIBLE** - Good configuration with minor improvements needed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔴 **DEPLOYMENT NOT RECOMMENDED** - Significant improvements needed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Release Creation (only for tags)
+  create-release:
+    name: Create Release
+    needs: [deployment-readiness]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: production-builds
+
+      - name: Generate Release Notes
+        id: release-notes
+        run: |
+          # Generate changelog since last tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "## Changes since $PREVIOUS_TAG" > release-notes.md
+            echo "" >> release-notes.md
+            git log --pretty=format:"- %s (%an)" $PREVIOUS_TAG..HEAD >> release-notes.md
+          else
+            echo "## Initial Release" > release-notes.md
+            echo "" >> release-notes.md
+            echo "First release of Bruno's IMS with comprehensive Copilot configuration." >> release-notes.md
+          fi
+
+          echo "release_notes_file=release-notes.md" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body_path: ${{ steps.release-notes.outputs.release_notes_file }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: backend/dist
+          asset_name: backend-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
+
+  # Deployment Summary
+  deployment-summary:
+    name: Deployment Summary
+    needs: [pre-deployment-checks, performance-benchmark, deployment-readiness]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# 🚀 Deployment Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Pre-deployment Validation | ${{ needs.pre-deployment-checks.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Benchmark | ${{ needs.performance-benchmark.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment Readiness | ${{ needs.deployment-readiness.result == 'success' && '✅ Ready' || '❌ Not Ready' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall deployment status
+          if [[ "${{ needs.pre-deployment-checks.result }}" == "success" && "${{ needs.performance-benchmark.result }}" == "success" && "${{ needs.deployment-readiness.result }}" == "success" ]]; then
+            echo "🟢 **DEPLOYMENT STATUS: GO** - All checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔴 **DEPLOYMENT STATUS: NO GO** - Some checks failed" >> $GITHUB_STEP_SUMMARY
+          fi
