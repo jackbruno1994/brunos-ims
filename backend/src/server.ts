@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import router from './routes/index';
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +34,9 @@ app.get('/api', (_req: Request, res: Response) => {
     version: '1.0.0',
   });
 });
+
+// Use API routes
+app.use('/api', router);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
