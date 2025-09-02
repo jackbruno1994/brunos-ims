@@ -1,0 +1,33 @@
+# Global owners - these users/teams will be requested for review on all PRs
+* @jackbruno1994
+
+# GitHub Actions and CI/CD workflows
+/.github/ @jackbruno1994
+/.github/workflows/ @jackbruno1994
+/.github/copilot/ @jackbruno1994
+
+# Backend code
+/backend/ @jackbruno1994
+/backend/src/ @jackbruno1994
+/backend/tests/ @jackbruno1994
+
+# Frontend code
+/frontend/ @jackbruno1994
+/frontend/src/ @jackbruno1994
+/frontend/tests/ @jackbruno1994
+
+# Configuration files
+package.json @jackbruno1994
+package-lock.json @jackbruno1994
+tsconfig.json @jackbruno1994
+.eslintrc.* @jackbruno1994
+.prettierrc @jackbruno1994
+
+# Security and dependency files
+.github/dependabot.yml @jackbruno1994
+SECURITY.md @jackbruno1994
+
+# Documentation
+README.md @jackbruno1994
+/docs/ @jackbruno1994
+COPILOT_IMPLEMENTATION.md @jackbruno1994
