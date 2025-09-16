@@ -9,10 +9,12 @@ Bruno's IMS is a comprehensive management system designed to handle operations a
 ## Features
 
 - **Multi-Country Support**: Manage restaurants across different countries with localized settings
-- **User Management**: Role-based access control (Admin, Manager, Staff)
-- **Restaurant Management**: Centralized restaurant information and status tracking
+- **Role-Based Access Control (RBAC)**: Comprehensive user management with flexible permissions
+- **Inventory Management**: Real-time stock tracking, supplier management, and cost analysis
+- **Menu Management**: Digital menu creation with ingredient tracking and cost calculation
+- **Order Processing**: Complete order lifecycle management with kitchen integration
+- **Health Monitoring**: Comprehensive system health checks and metrics
 - **Scalable Architecture**: Modern full-stack architecture built for growth
-- **Real-time Dashboard**: Overview of key metrics and quick access to important features
 
 ## Technology Stack
 
@@ -20,6 +22,8 @@ Bruno's IMS is a comprehensive management system designed to handle operations a
 
 - **Node.js** with **Express.js** framework
 - **TypeScript** for type safety
+- **Prisma** ORM with **PostgreSQL** database
+- **JWT** authentication
 - RESTful API design
 - Security middleware (Helmet, CORS)
 - Environment-based configuration
@@ -32,36 +36,31 @@ Bruno's IMS is a comprehensive management system designed to handle operations a
 - **Axios** for API communication
 - Responsive design
 
-## Project Structure
+### Database
 
-```
-brunos-ims/
-├── backend/              # Node.js + Express API
-│   ├── src/
-│   │   ├── config/      # Configuration files
-│   │   ├── controllers/ # Business logic
-│   │   ├── models/      # Data models
-│   │   ├── routes/      # API routes
-│   │   └── server.ts    # Main server
-│   └── package.json
-├── frontend/            # React application
-│   ├── src/
-│   │   ├── components/  # UI components
-│   │   ├── pages/      # Page components
-│   │   └── services/   # API services
-│   └── package.json
-├── docs/               # Documentation
-└── README.md
-```
+- **PostgreSQL** 15+ for data persistence
+- **Prisma** for database modeling and migrations
+- **Redis** for caching (optional)
+- Comprehensive RBAC schema
+- Multi-tenant architecture support
 
-## Getting Started
+### DevOps
+
+- **Docker** containerization
+- **GitHub Actions** CI/CD pipeline
+- **Jest** for testing
+- **ESLint** and **Prettier** for code quality
+
+## Quick Start
 
 ### Prerequisites
 
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
+- **Docker** and **Docker Compose**
+- **Git**
 
-### Installation
+### Development Setup
 
 1. **Clone the repository**
 
@@ -70,116 +69,223 @@ brunos-ims/
    cd brunos-ims
    ```
 
-2. **Set up the Backend**
+2. **Run the setup script**
+
+   ```bash
+   ./setup-dev.sh
+   ```
+
+   This script will:
+   - Install all dependencies
+   - Start development database with Docker
+   - Generate Prisma client
+   - Run database migrations
+   - Seed sample data
+
+3. **Start the development servers**
+
+   ```bash
+   # Backend (Terminal 1)
+   cd backend && npm run dev
+
+   # Frontend (Terminal 2)  
+   cd frontend && npm run dev
+   ```
+
+### Manual Setup
+
+If you prefer manual setup:
+
+1. **Install dependencies**
+
+   ```bash
+   npm install --legacy-peer-deps
+   cd backend && npm install
+   cd ../frontend && npm install
+   ```
+
+2. **Start development database**
+
+   ```bash
+   docker-compose -f docker-compose.dev.yml up -d
+   ```
+
+3. **Configure environment**
+
+   ```bash
+   cp backend/.env.example backend/.env
+   # Edit backend/.env with your settings
+   ```
+
+4. **Setup database**
 
    ```bash
    cd backend
-   npm install
-
-   # Copy environment file and configure
-   cp .env.example .env
-   # Edit .env with your configuration
-
-   # Build the project
-   npm run build
-
-   # Start development server
-   npm run dev
+   npm run db:generate  # Generate Prisma client
+   npm run db:push      # Push schema to database
+   npm run db:seed      # Seed sample data
    ```
 
-3. **Set up the Frontend**
+5. **Start development servers**
 
    ```bash
-   cd ../frontend
-   npm install
+   # Backend
+   cd backend && npm run dev
 
-   # Start development server
-   npm run dev
+   # Frontend
+   cd frontend && npm run dev
    ```
 
-### Development
+## Project Structure
 
-#### Backend Development
-
-```bash
-cd backend
-
-# Start development server with hot reload
-npm run dev
-
-# Build TypeScript
-npm run build
-
-# Start production server
-npm start
+```
+brunos-ims/
+├── backend/                 # Node.js + Express API
+│   ├── src/
+│   │   ├── config/         # Configuration files
+│   │   ├── controllers/    # Business logic
+│   │   ├── models/         # Data models and types
+│   │   ├── routes/         # API routes
+│   │   └── server.ts       # Main server
+│   ├── prisma/             # Database schema and migrations
+│   │   ├── schema.prisma   # Database schema
+│   │   └── seed.ts         # Sample data
+│   ├── tests/              # Test files
+│   └── Dockerfile          # Container configuration
+├── frontend/               # React application
+│   ├── src/
+│   │   ├── components/     # UI components
+│   │   ├── pages/          # Page components
+│   │   └── services/       # API services
+│   └── package.json
+├── docs/                   # Documentation
+├── .github/workflows/      # CI/CD pipelines
+├── docker-compose.yml      # Production containers
+├── docker-compose.dev.yml  # Development containers
+└── setup-dev.sh           # Development setup script
 ```
 
-The backend API will be available at `http://localhost:3001`
+## API Endpoints
 
-#### Frontend Development
+### Health & Monitoring
+- `GET /api/health` - Basic health check
+- `GET /api/health/metrics` - Detailed system metrics
+- `GET /api/health/ready` - Kubernetes readiness probe
+- `GET /api/health/live` - Kubernetes liveness probe
 
-```bash
-cd frontend
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-```
-
-The frontend will be available at `http://localhost:3000`
-
-### API Endpoints
-
-- `GET /health` - Health check
-- `GET /api` - API information
+### Restaurant Management
 - `GET /api/restaurants` - List restaurants
 - `POST /api/restaurants` - Create restaurant
+- `GET /api/restaurants/:id` - Get restaurant details
+- `PUT /api/restaurants/:id` - Update restaurant
+- `DELETE /api/restaurants/:id` - Delete restaurant
+
+### User Management
 - `GET /api/users` - List users
 - `POST /api/users` - Create user
+- `GET /api/users/:id` - Get user details
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
 
-### Environment Variables
+### Inventory Management
+- `GET /api/inventory/items` - List inventory items
+- `POST /api/inventory/items` - Create item
+- `GET /api/inventory/items/:id` - Get item details
+- `PUT /api/inventory/items/:id` - Update item
+- `DELETE /api/inventory/items/:id` - Delete item
+- `GET /api/inventory/stock-levels` - Get stock levels
+- `GET /api/inventory/stock-history` - Get stock movement history
+- `POST /api/inventory/stock-movement` - Record stock movement
 
-#### Backend (.env)
+## Environment Variables
 
-```
+### Backend (.env)
+
+```env
+# Server Configuration
 PORT=3001
 NODE_ENV=development
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=brunos_ims
-DB_USER=postgres
-DB_PASSWORD=password
-JWT_SECRET=your-secret-key
+
+# Database Configuration
+DATABASE_URL="postgresql://postgres:password@localhost:5433/brunos_ims_dev?schema=public"
+
+# Security
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# CORS
 CORS_ORIGIN=http://localhost:3000
 ```
 
-#### Frontend
+### Frontend
 
-```
+```env
 VITE_API_URL=http://localhost:3001/api
 ```
 
+## Default Credentials
+
+After running the setup, you can log in with:
+
+- **Email**: admin@brunos-restaurant.com
+- **Password**: password123
+
 ## Documentation
 
-- [Architecture Overview](./docs/architecture/README.md)
+- [Database Architecture](./docs/database.md)
+- [API Documentation](./docs/api.md)
+- [Development Guide](./docs/development.md)
+- [Deployment Guide](./docs/deployment.md)
+
+## Testing
+
+```bash
+# Run all tests
+npm run test
+
+# Backend tests
+cd backend && npm test
+
+# Frontend tests
+cd frontend && npm test
+
+# Test coverage
+npm run test:coverage
+```
+
+## Deployment
+
+### Production with Docker
+
+```bash
+# Build and start production containers
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+```
+
+### Environment-specific Deployments
+
+```bash
+# Development
+docker-compose -f docker-compose.dev.yml up -d
+
+# Production
+docker-compose -f docker-compose.yml up -d
+```
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contact
+## Support
 
-For questions or support, please contact [jackbruno1994](https://github.com/jackbruno1994).
+For questions or support, please contact [jackbruno1994](https://github.com/jackbruno1994) or open an issue on GitHub.
