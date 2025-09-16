@@ -1,11 +1,17 @@
 import { Request, Response } from 'express';
-import { Item, StockMovement, Location, Category } from '../models/Inventory';
+import { prisma } from '../config/database';
 
 export const inventoryController = {
     // Item Controllers
-    async getAllItems(req: Request, res: Response) {
+    async getAllItems(_req: Request, res: Response) {
         try {
-            const items = await Item.find();
+            const items = await prisma.item.findMany({
+                include: {
+                    category: true,
+                    supplier: true,
+                    location: true,
+                }
+            });
             res.json(items);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching items', error });
@@ -14,18 +20,35 @@ export const inventoryController = {
 
     async createItem(req: Request, res: Response) {
         try {
-            const item = new Item(req.body);
-            await item.save();
+            const item = await prisma.item.create({
+                data: req.body,
+                include: {
+                    category: true,
+                    supplier: true,
+                    location: true,
+                }
+            });
             res.status(201).json(item);
         } catch (error) {
             res.status(400).json({ message: 'Error creating item', error });
         }
     },
 
-    async getItem(req: Request, res: Response) {
+    async getItem(req: Request, res: Response): Promise<void> {
         try {
-            const item = await Item.findById(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            const item = await prisma.item.findUnique({
+                where: { id: req.params.id },
+                include: {
+                    category: true,
+                    supplier: true,
+                    location: true,
+                    stockMovements: true,
+                }
+            });
+            if (!item) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
             res.json(item);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching item', error });
@@ -34,8 +57,15 @@ export const inventoryController = {
 
     async updateItem(req: Request, res: Response) {
         try {
-            const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            const item = await prisma.item.update({
+                where: { id: req.params.id },
+                data: req.body,
+                include: {
+                    category: true,
+                    supplier: true,
+                    location: true,
+                }
+            });
             res.json(item);
         } catch (error) {
             res.status(400).json({ message: 'Error updating item', error });
@@ -44,56 +74,92 @@ export const inventoryController = {
 
     async deleteItem(req: Request, res: Response) {
         try {
-            const item = await Item.findByIdAndDelete(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
-            res.json({ message: 'Item deleted successfully' });
+            await prisma.item.delete({
+                where: { id: req.params.id }
+            });
+            res.status(204).send();
         } catch (error) {
-            res.status(500).json({ message: 'Error deleting item', error });
+            res.status(400).json({ message: 'Error deleting item', error });
         }
     },
 
-    // Stock Movement Controllers
     async recordStockMovement(req: Request, res: Response) {
         try {
-            const movement = new StockMovement({
-                ...req.body,
-                createdBy: req.user?.id
+            const movement = await prisma.stockMovement.create({
+                data: {
+                    ...req.body,
+                    createdBy: req.body.createdBy || 'system' // TODO: Get from authenticated user
+                },
+                include: {
+                    item: true,
+                    location: true,
+                    user: true,
+                }
             });
-            await movement.save();
             res.status(201).json(movement);
         } catch (error) {
             res.status(400).json({ message: 'Error recording stock movement', error });
         }
     },
 
-    async getStockLevels(req: Request, res: Response) {
+    async getStockLevels(_req: Request, res: Response) {
         try {
-            const movements = await StockMovement.aggregate([
-                { $group: {
-                    _id: '$itemId',
-                    totalStock: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$type', 'IN'] },
-                                '$quantity',
-                                { $multiply: ['$quantity', -1] }
-                            ]
+            const stockLevels = await prisma.item.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                    currentStock: true,
+                    minStockLevel: true,
+                    maxStockLevel: true,
+                    reorderPoint: true,
+                    category: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    location: {
+                        select: {
+                            name: true
                         }
                     }
-                }}
-            ]);
-            res.json(movements);
+                },
+                where: {
+                    isActive: true
+                }
+            });
+            res.json(stockLevels);
         } catch (error) {
-            res.status(500).json({ message: 'Error calculating stock levels', error });
+            res.status(500).json({ message: 'Error fetching stock levels', error });
         }
     },
 
-    async getStockHistory(req: Request, res: Response) {
+    async getStockHistory(_req: Request, res: Response) {
         try {
-            const history = await StockMovement.find()
-                .populate('itemId')
-                .populate('createdBy', 'username')
-                .sort('-createdAt');
+            const history = await prisma.stockMovement.findMany({
+                include: {
+                    item: {
+                        select: {
+                            name: true,
+                            unit: true
+                        }
+                    },
+                    location: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    user: {
+                        select: {
+                            firstName: true,
+                            lastName: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: 100 // Limit to recent 100 movements
+            });
             res.json(history);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching stock history', error });
@@ -101,9 +167,22 @@ export const inventoryController = {
     },
 
     // Location Controllers
-    async getAllLocations(req: Request, res: Response) {
+    async getAllLocations(_req: Request, res: Response) {
         try {
-            const locations = await Location.find({ active: true });
+            const locations = await prisma.location.findMany({
+                include: {
+                    restaurant: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    _count: {
+                        select: {
+                            items: true
+                        }
+                    }
+                }
+            });
             res.json(locations);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching locations', error });
@@ -112,8 +191,16 @@ export const inventoryController = {
 
     async createLocation(req: Request, res: Response) {
         try {
-            const location = new Location(req.body);
-            await location.save();
+            const location = await prisma.location.create({
+                data: req.body,
+                include: {
+                    restaurant: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            });
             res.status(201).json(location);
         } catch (error) {
             res.status(400).json({ message: 'Error creating location', error });
@@ -122,8 +209,17 @@ export const inventoryController = {
 
     async updateLocation(req: Request, res: Response) {
         try {
-            const location = await Location.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
+            const location = await prisma.location.update({
+                where: { id: req.params.id },
+                data: req.body,
+                include: {
+                    restaurant: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            });
             res.json(location);
         } catch (error) {
             res.status(400).json({ message: 'Error updating location', error });
@@ -132,18 +228,27 @@ export const inventoryController = {
 
     async deleteLocation(req: Request, res: Response) {
         try {
-            const location = await Location.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
-            res.json({ message: 'Location deleted successfully' });
+            await prisma.location.delete({
+                where: { id: req.params.id }
+            });
+            res.status(204).send();
         } catch (error) {
-            res.status(500).json({ message: 'Error deleting location', error });
+            res.status(400).json({ message: 'Error deleting location', error });
         }
     },
 
     // Category Controllers
-    async getAllCategories(req: Request, res: Response) {
+    async getAllCategories(_req: Request, res: Response) {
         try {
-            const categories = await Category.find();
+            const categories = await prisma.category.findMany({
+                include: {
+                    _count: {
+                        select: {
+                            items: true
+                        }
+                    }
+                }
+            });
             res.json(categories);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching categories', error });
@@ -152,8 +257,9 @@ export const inventoryController = {
 
     async createCategory(req: Request, res: Response) {
         try {
-            const category = new Category(req.body);
-            await category.save();
+            const category = await prisma.category.create({
+                data: req.body
+            });
             res.status(201).json(category);
         } catch (error) {
             res.status(400).json({ message: 'Error creating category', error });
