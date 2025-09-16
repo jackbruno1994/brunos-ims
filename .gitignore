@@ -193,3 +193,42 @@ local.json
 
 # Generated documentation
 *.pdf
+
+# Prisma generated files
+backend/node_modules/.prisma/
+backend/prisma/generated/
+
+# Docker volumes
+postgres_data/
+redis_data/
+postgres_dev_data/
+redis_dev_data/
+
+# Lock files (keep only one type)
+*.lock
+!package-lock.json
+
+# Environment-specific overrides
+docker-compose.local.yml
+docker-compose.production.yml
+
+# Monitoring and logging
+logs/
+*.log.*
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Prisma migrations (keep in version control, but ignore local state)
+backend/prisma/migrations/.migration_lock.toml
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# Backup and archive files
+*.zip
+*.tar.gz
+*.rar

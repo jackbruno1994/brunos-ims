@@ -1,0 +1,401 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+// User Management and RBAC
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  firstName   String
+  lastName    String
+  password    String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lastLoginAt DateTime?
+
+  // Relations
+  roles                UserRole[]
+  restaurants          RestaurantUser[]
+  stockMovements       StockMovement[]
+  orderCreated         Order[]              @relation("OrderCreatedBy")
+  orderUpdated         Order[]              @relation("OrderUpdatedBy")
+  menuItemsCreated     MenuItem[]           @relation("MenuItemCreatedBy")
+  menuItemsUpdated     MenuItem[]           @relation("MenuItemUpdatedBy")
+  inventoryAdjustments InventoryAdjustment[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions Json // Store permissions as JSON for flexibility
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// Country and Restaurant Management
+model Country {
+  id       String @id @default(cuid())
+  name     String @unique
+  code     String @unique @db.VarChar(2) // ISO 2-letter country code
+  currency String @db.VarChar(3)         // ISO 3-letter currency code
+  timezone String @default("UTC")
+
+  // Relations
+  restaurants Restaurant[]
+
+  @@map("countries")
+}
+
+model Restaurant {
+  id        String            @id @default(cuid())
+  name      String
+  address   String
+  phone     String?
+  email     String?
+  status    RestaurantStatus  @default(ACTIVE)
+  countryId String
+  settings  Json? // Store restaurant-specific settings
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  // Relations
+  country     Country          @relation(fields: [countryId], references: [id])
+  users       RestaurantUser[]
+  locations   Location[]
+  orders      Order[]
+  menuItems   MenuItem[]
+
+  @@map("restaurants")
+}
+
+model RestaurantUser {
+  id           String @id @default(cuid())
+  userId       String
+  restaurantId String
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@map("restaurant_users")
+}
+
+// ============================================
+// INVENTORY MANAGEMENT
+// ============================================
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  @db.VarChar(7) // Hex color code
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  items Item[]
+
+  @@map("categories")
+}
+
+model Location {
+  id           String @id @default(cuid())
+  name         String
+  description  String?
+  restaurantId String
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  restaurant     Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items          Item[]
+  stockMovements StockMovement[]
+
+  @@map("locations")
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  items Item[]
+
+  @@map("suppliers")
+}
+
+model Item {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  sku             String?   @unique
+  barcode         String?   @unique
+  categoryId      String
+  supplierId      String?
+  locationId      String
+  unit            String    @default("piece") // unit of measurement
+  costPrice       Decimal   @db.Decimal(10, 2)
+  sellingPrice    Decimal?  @db.Decimal(10, 2)
+  currentStock    Int       @default(0)
+  minStockLevel   Int       @default(0)
+  maxStockLevel   Int?
+  reorderPoint    Int       @default(0)
+  isActive        Boolean   @default(true)
+  expiryDate      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  category            Category              @relation(fields: [categoryId], references: [id])
+  supplier            Supplier?             @relation(fields: [supplierId], references: [id])
+  location            Location              @relation(fields: [locationId], references: [id])
+  stockMovements      StockMovement[]
+  inventoryAdjustments InventoryAdjustment[]
+  menuItemIngredients MenuItemIngredient[]
+  orderItems          OrderItem[]
+
+  @@map("items")
+}
+
+model StockMovement {
+  id          String             @id @default(cuid())
+  itemId      String
+  locationId  String
+  type        StockMovementType
+  quantity    Int
+  unitCost    Decimal?           @db.Decimal(10, 2)
+  totalCost   Decimal?           @db.Decimal(10, 2)
+  reason      String?
+  reference   String? // Reference to related document (order, adjustment, etc.)
+  createdBy   String
+  createdAt   DateTime           @default(now())
+
+  // Relations
+  item     Item     @relation(fields: [itemId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  user     User     @relation(fields: [createdBy], references: [id])
+
+  @@map("stock_movements")
+}
+
+model InventoryAdjustment {
+  id        String                     @id @default(cuid())
+  itemId    String
+  reason    InventoryAdjustmentReason
+  quantity  Int // Positive for increases, negative for decreases
+  cost      Decimal?                   @db.Decimal(10, 2)
+  notes     String?
+  createdBy String
+  createdAt DateTime                   @default(now())
+
+  // Relations
+  item Item @relation(fields: [itemId], references: [id])
+  user User @relation(fields: [createdBy], references: [id])
+
+  @@map("inventory_adjustments")
+}
+
+// ============================================
+// MENU MANAGEMENT
+// ============================================
+
+model MenuCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  menuItems MenuItem[]
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id             String      @id @default(cuid())
+  name           String
+  description    String?
+  price          Decimal     @db.Decimal(10, 2)
+  cost           Decimal?    @db.Decimal(10, 2) // Calculated from ingredients
+  categoryId     String
+  restaurantId   String
+  preparationTime Int?       @default(0) // in minutes
+  isAvailable    Boolean     @default(true)
+  isActive       Boolean     @default(true)
+  allergens      String[]    @default([]) // Array of allergen strings
+  dietaryInfo    String[]    @default([]) // vegetarian, vegan, gluten-free, etc.
+  image          String?
+  sortOrder      Int         @default(0)
+  createdBy      String
+  updatedBy      String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  category    MenuCategory         @relation(fields: [categoryId], references: [id])
+  restaurant  Restaurant           @relation(fields: [restaurantId], references: [id])
+  createdByUser User               @relation("MenuItemCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?              @relation("MenuItemUpdatedBy", fields: [updatedBy], references: [id])
+  ingredients MenuItemIngredient[]
+  orderItems  OrderItem[]
+
+  @@map("menu_items")
+}
+
+model MenuItemIngredient {
+  id         String  @id @default(cuid())
+  menuItemId String
+  itemId     String
+  quantity   Decimal @db.Decimal(10, 3) // Quantity needed for one serving
+  unit       String  @default("piece")
+  isOptional Boolean @default(false)
+
+  // Relations
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@unique([menuItemId, itemId])
+  @@map("menu_item_ingredients")
+}
+
+// ============================================
+// ORDER MANAGEMENT
+// ============================================
+
+model Order {
+  id           String      @id @default(cuid())
+  orderNumber  String      @unique
+  restaurantId String
+  customerName String?
+  customerPhone String?
+  customerEmail String?
+  status       OrderStatus @default(PENDING)
+  type         OrderType   @default(DINE_IN)
+  tableNumber  String?
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  taxAmount    Decimal?    @db.Decimal(10, 2)
+  discountAmount Decimal?  @db.Decimal(10, 2)
+  notes        String?
+  createdBy    String
+  updatedBy    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  completedAt  DateTime?
+
+  // Relations
+  restaurant     Restaurant  @relation(fields: [restaurantId], references: [id])
+  createdByUser  User        @relation("OrderCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser  User?       @relation("OrderUpdatedBy", fields: [updatedBy], references: [id])
+  items          OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  menuItemId String
+  itemId     String? // For direct inventory items
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+  notes      String?
+
+  // Relations
+  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id])
+  item     Item?     @relation(fields: [itemId], references: [id])
+
+  @@map("order_items")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum RestaurantStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum StockMovementType {
+  IN          // Stock received
+  OUT         // Stock used/sold
+  TRANSFER    // Transfer between locations
+  ADJUSTMENT  // Manual adjustment
+  WASTE       // Waste/spoilage
+  RETURN      // Return to supplier
+}
+
+enum InventoryAdjustmentReason {
+  DAMAGE
+  EXPIRY
+  THEFT
+  COUNT_CORRECTION
+  OTHER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+  CATERING
+}

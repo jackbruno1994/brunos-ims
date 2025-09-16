@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Development
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: brunos-ims-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: brunos_ims_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"  # Different port for dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: brunos-ims-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # Different port for dev
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  default:
+    name: brunos-ims-dev-network

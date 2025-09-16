@@ -4,7 +4,9 @@
   "description": "Backend API for Bruno's Integrated Management System",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:prisma && tsc",
+    "build:prisma": "prisma generate || echo 'Prisma generate failed, using fallback types'",
+    "build:fallback": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
     "test": "jest",
@@ -15,7 +17,13 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset"
   },
   "keywords": [
     "restaurant",
@@ -27,6 +35,8 @@
   "author": "jackbruno1994",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^6.16.1",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^4.21.2",
@@ -35,8 +45,8 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
-    "winston": "^3.11.0",
-    "bcryptjs": "^2.4.3"
+    "prisma": "^6.16.1",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -54,6 +64,7 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
 }

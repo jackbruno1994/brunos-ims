@@ -117,7 +117,10 @@ jobs:
           cd ../frontend && npm ci --prefer-offline --no-audit
 
       - name: Backend Tests
-        run: cd backend && npm test || echo "Backend tests not configured yet"
+        run: |
+          cd backend
+          npm run db:generate
+          npm test || echo "Backend tests not configured yet"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/brunos_ims_test
 
@@ -191,7 +194,10 @@ jobs:
           cd ../frontend && npm ci --prefer-offline --no-audit
 
       - name: Build Backend
-        run: cd backend && npm run build
+        run: |
+          cd backend
+          npm run db:generate
+          npm run build
 
       - name: Build Frontend
         run: cd frontend && npm run build
