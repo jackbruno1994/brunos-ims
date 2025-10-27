@@ -35,6 +35,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Users
             </Link>
           </li>
+          <li>
+            <Link to="/purchase-orders" className={location.pathname === '/purchase-orders' ? 'active' : ''}>
+              Purchase Orders
+            </Link>
+          </li>
         </ul>
       </nav>
 
