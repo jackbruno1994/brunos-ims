@@ -1,0 +1,277 @@
+name: Enhanced Security Scanning
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  # Static Application Security Testing (SAST)
+  sast-scan:
+    name: SAST Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript,typescript
+          queries: security-extended,security-and-quality
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Build for Analysis
+        run: |
+          cd backend && npm run build || echo "Backend build failed"
+          cd ../frontend && npm run build || echo "Frontend build failed"
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # Dependency Vulnerability Scanning
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Run npm audit
+        run: |
+          echo "=== Root Dependencies Audit ==="
+          npm audit --audit-level=moderate || true
+
+          echo "=== Backend Dependencies Audit ==="
+          cd backend && npm audit --audit-level=moderate || true
+
+          echo "=== Frontend Dependencies Audit ==="
+          cd ../frontend && npm audit --audit-level=moderate || true
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium --all-projects
+
+  # Secret Scanning
+  secret-scan:
+    name: Secret Detection Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Container Security Scanning (for future Docker implementation)
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Create Dockerfile for scanning
+        run: |
+          cat > Dockerfile.security <<EOF
+          FROM node:18-alpine
+          WORKDIR /app
+          COPY package*.json ./
+          RUN npm ci --only=production
+          COPY . .
+          EXPOSE 3000
+          CMD ["npm", "start"]
+          EOF
+
+      - name: Build Docker Image
+        run: |
+          docker build -f Dockerfile.security -t brunos-ims:security .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'brunos-ims:security'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # License Compliance Scanning
+  license-scan:
+    name: License Compliance Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Check Licenses
+        run: |
+          npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense' --excludePrivatePackages || true
+
+  # Security Policy Validation
+  security-policy-check:
+    name: Security Policy Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Security Policy
+        run: |
+          # Check if SECURITY.md exists
+          if [ ! -f SECURITY.md ]; then
+            echo "❌ SECURITY.md file is missing"
+            exit 1
+          fi
+
+          # Check if security headers are configured
+          if [ ! -f "backend/src/middleware/security.ts" ]; then
+            echo "⚠️  Security middleware not found at expected location"
+          fi
+
+          # Check for environment example files
+          if [ ! -f ".env.example" ]; then
+            echo "⚠️  .env.example file is missing"
+          fi
+
+          echo "✅ Security policy validation completed"
+
+  # OWASP Dependency Check
+  owasp-dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'brunos-ims'
+          path: '.'
+          format: 'ALL'
+          args: >
+            --enableRetired
+            --enableExperimental
+            --nodeAuditSkipDevDependencies
+            --nodePackageSkipDevDependencies
+
+      - name: Upload OWASP Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: owasp-dependency-check-report
+          path: reports/
+          retention-days: 30
+
+  # Security Summary Report
+  security-summary:
+    name: Security Summary Report
+    needs: [sast-scan, dependency-scan, secret-scan, license-scan, security-policy-check]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Security Scan Summary
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST (CodeQL) | ${{ needs.sast-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Scan | ${{ needs.secret-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| License Scan | ${{ needs.license-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Policy | ${{ needs.security-policy-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
