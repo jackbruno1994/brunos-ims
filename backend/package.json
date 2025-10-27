@@ -15,7 +15,14 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:generate": "prisma generate --schema=../db/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=../db/schema.prisma",
+    "db:migrate:deploy": "prisma migrate deploy --schema=../db/schema.prisma",
+    "db:push": "prisma db push --schema=../db/schema.prisma",
+    "db:reset": "prisma migrate reset --schema=../db/schema.prisma --force",
+    "db:seed": "tsx src/database/seed.ts",
+    "db:studio": "prisma studio --schema=../db/schema.prisma"
   },
   "keywords": [
     "restaurant",
@@ -27,6 +34,8 @@
   "author": "jackbruno1994",
   "license": "MIT",
   "dependencies": {
+    "@types/pg": "^8.15.5",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^4.21.2",
@@ -35,8 +44,8 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
-    "winston": "^3.11.0",
-    "bcryptjs": "^2.4.3"
+    "pg": "^8.16.3",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -54,6 +63,7 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
 }
