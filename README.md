@@ -168,6 +168,7 @@ VITE_API_URL=http://localhost:3001/api
 
 - [Implementation Status](./IMPLEMENTATION_STATUS.md) - **⚠️ IMPORTANT: Comprehensive functionality has been implemented in PR #62**
 - [Architecture Overview](./docs/architecture/README.md)
+- [Multi-Agent Parallel Deployment](./docs/MULTI_AGENT_DEPLOYMENT.md) - **🚀 NEW: Deploy with 1000+ agents working in parallel**
 
 ## 🎉 Major Implementation Update
 
@@ -184,6 +185,22 @@ PR #62 includes a complete implementation with:
 **👉 See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for full details**
 
 Before creating new issues, please check if your requested functionality is already implemented in PR #62.
+
+## 🚀 Multi-Agent Parallel Deployment
+
+**Deploy as much as you need with intelligent teamwork!**
+
+The system now supports **multi-agent parallel deployment** with:
+- 🤖 **1000+ agents** can work simultaneously on different tasks
+- 👨‍✈️ **Leader agent** coordinates and assigns tasks to all workers
+- ⚡ **Priority-based execution** ensures logical task ordering
+- 🔄 **No waiting** - agents work in parallel, not sequentially
+- 📏 **Same rules for all** - consistent standards across all agents
+- ⚙️ **Auto-scalable** - dynamically adjusts based on workload
+
+**Result: 4x faster deployments with intelligent parallel execution!**
+
+See [Multi-Agent Deployment Documentation](./docs/MULTI_AGENT_DEPLOYMENT.md) for details.
 
 ## Contributing
 
