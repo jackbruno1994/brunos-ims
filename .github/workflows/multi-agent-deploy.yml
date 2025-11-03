@@ -23,6 +23,8 @@ jobs:
     name: Leader - Task Coordination
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       tasks: ${{ steps.generate_tasks.outputs.tasks }}
       agent_count: ${{ steps.generate_tasks.outputs.agent_count }}
@@ -63,6 +65,8 @@ jobs:
     needs: leader
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code
@@ -99,6 +103,8 @@ jobs:
     needs: [leader, setup]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false
@@ -153,6 +159,8 @@ jobs:
     needs: [leader, setup, workers-priority-1]
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false
@@ -221,6 +229,9 @@ jobs:
     needs: [leader, setup, workers-priority-2]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
 
     strategy:
       fail-fast: false
@@ -283,6 +294,8 @@ jobs:
     needs: [leader, workers-priority-1, workers-priority-2, workers-priority-3]
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: read
 
     steps:
       - name: Generate Summary Report
