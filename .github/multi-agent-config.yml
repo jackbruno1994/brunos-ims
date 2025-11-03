@@ -3,50 +3,50 @@
 
 # Agent Architecture
 architecture:
-  pattern: "Leader-Worker"
-  description: "One leader agent coordinates multiple worker agents executing tasks in parallel"
-  
+  pattern: 'Leader-Worker'
+  description: 'One leader agent coordinates multiple worker agents executing tasks in parallel'
+
   leader:
-    role: "Coordinator"
+    role: 'Coordinator'
     responsibilities:
-      - "Task generation and distribution"
-      - "Priority assignment"
-      - "Agent coordination"
-      - "Final reporting and summary"
+      - 'Task generation and distribution'
+      - 'Priority assignment'
+      - 'Agent coordination'
+      - 'Final reporting and summary'
     single_instance: true
-    
+
   workers:
-    role: "Executors"
+    role: 'Executors'
     responsibilities:
-      - "Execute assigned tasks"
-      - "Follow same rules and standards"
-      - "Report completion status"
+      - 'Execute assigned tasks'
+      - 'Follow same rules and standards'
+      - 'Report completion status'
     parallel_execution: true
     max_instances: 50
-    
+
 # Scaling Configuration
 scaling:
   # Default number of agents
   default_agents: 10
-  
+
   # Maximum agents per priority level
   max_parallel_per_priority: 50
-  
+
   # Total maximum agents (across all priorities)
   max_total_agents: 1000
-  
+
   # Dynamic scaling based on workload
   auto_scale:
     enabled: true
     min_agents: 5
     max_agents: 50
-    scale_trigger: "task_count"
-    
+    scale_trigger: 'task_count'
+
 # Task Priority Levels
 priorities:
   priority_1:
-    name: "Quality Checks"
-    description: "Code quality, linting, type checking, formatting"
+    name: 'Quality Checks'
+    description: 'Code quality, linting, type checking, formatting'
     tasks:
       - lint-backend
       - lint-frontend
@@ -55,10 +55,10 @@ priorities:
       - format-check
     parallel_execution: true
     fail_fast: false
-    
+
   priority_2:
-    name: "Testing & Security"
-    description: "Unit tests, integration tests, security audits"
+    name: 'Testing & Security'
+    description: 'Unit tests, integration tests, security audits'
     tasks:
       - test-backend
       - test-frontend
@@ -67,10 +67,10 @@ priorities:
     fail_fast: false
     depends_on:
       - priority_1
-    
+
   priority_3:
-    name: "Build & Package"
-    description: "Build applications and create artifacts"
+    name: 'Build & Package'
+    description: 'Build applications and create artifacts'
     tasks:
       - build-backend
       - build-frontend
@@ -83,123 +83,123 @@ priorities:
 tasks:
   # Backend Tasks
   lint-backend:
-    module: "backend"
-    command: "npm run lint"
+    module: 'backend'
+    command: 'npm run lint'
     timeout: 10
     priority: 1
-    description: "Lint backend TypeScript code"
-    
+    description: 'Lint backend TypeScript code'
+
   typecheck-backend:
-    module: "backend"
-    command: "npm run type-check"
+    module: 'backend'
+    command: 'npm run type-check'
     timeout: 10
     priority: 1
-    description: "Type check backend code"
-    
+    description: 'Type check backend code'
+
   test-backend:
-    module: "backend"
-    command: "npm test"
+    module: 'backend'
+    command: 'npm test'
     timeout: 20
     priority: 2
-    description: "Run backend unit tests"
+    description: 'Run backend unit tests'
     requires_database: true
-    
+
   build-backend:
-    module: "backend"
-    command: "npm run build"
+    module: 'backend'
+    command: 'npm run build'
     timeout: 15
     priority: 3
-    description: "Build backend application"
+    description: 'Build backend application'
     produces_artifacts: true
-    
+
   # Frontend Tasks
   lint-frontend:
-    module: "frontend"
-    command: "npm run lint"
+    module: 'frontend'
+    command: 'npm run lint'
     timeout: 10
     priority: 1
-    description: "Lint frontend TypeScript/React code"
-    
+    description: 'Lint frontend TypeScript/React code'
+
   typecheck-frontend:
-    module: "frontend"
-    command: "npm run type-check"
+    module: 'frontend'
+    command: 'npm run type-check'
     timeout: 10
     priority: 1
-    description: "Type check frontend code"
-    
+    description: 'Type check frontend code'
+
   test-frontend:
-    module: "frontend"
-    command: "npm test"
+    module: 'frontend'
+    command: 'npm test'
     timeout: 20
     priority: 2
-    description: "Run frontend unit tests"
-    
+    description: 'Run frontend unit tests'
+
   build-frontend:
-    module: "frontend"
-    command: "npm run build"
+    module: 'frontend'
+    command: 'npm run build'
     timeout: 15
     priority: 3
-    description: "Build frontend application"
+    description: 'Build frontend application'
     produces_artifacts: true
-    
+
   # Root Tasks
   format-check:
-    module: "root"
-    command: "npm run format:check"
+    module: 'root'
+    command: 'npm run format:check'
     timeout: 10
     priority: 1
-    description: "Check code formatting"
-    
+    description: 'Check code formatting'
+
   security-audit:
-    module: "root"
-    command: "npm audit"
+    module: 'root'
+    command: 'npm audit'
     timeout: 15
     priority: 2
-    description: "Audit dependencies for vulnerabilities"
+    description: 'Audit dependencies for vulnerabilities'
     allow_warnings: true
 
 # Agent Rules & Standards
 rules:
   # All agents must follow these standards
   consistency:
-    - "Use same Node.js version (18.x)"
-    - "Follow same coding standards (ESLint, Prettier)"
-    - "Execute tasks with same timeout limits"
-    - "Report status in consistent format"
-    - "Use shared dependency cache"
-    
+    - 'Use same Node.js version (18.x)'
+    - 'Follow same coding standards (ESLint, Prettier)'
+    - 'Execute tasks with same timeout limits'
+    - 'Report status in consistent format'
+    - 'Use shared dependency cache'
+
   # Task execution rules
   execution:
-    - "Fail gracefully with clear error messages"
-    - "Report completion status (success/failure/warning)"
-    - "Upload artifacts when applicable"
-    - "Log all actions for debugging"
-    - "Respect timeout limits"
-    
+    - 'Fail gracefully with clear error messages'
+    - 'Report completion status (success/failure/warning)'
+    - 'Upload artifacts when applicable'
+    - 'Log all actions for debugging'
+    - 'Respect timeout limits'
+
   # Coordination rules
   coordination:
-    - "Wait for leader task assignment"
-    - "Execute in assigned priority order"
-    - "Do not block other agents"
-    - "Report to leader upon completion"
-    - "Allow parallel execution within priority"
+    - 'Wait for leader task assignment'
+    - 'Execute in assigned priority order'
+    - 'Do not block other agents'
+    - 'Report to leader upon completion'
+    - 'Allow parallel execution within priority'
 
 # Performance Optimization
 optimization:
   # Dependency caching
   caching:
     enabled: true
-    strategy: "shared"
-    cache_key: "os-node-lockfile-hash"
+    strategy: 'shared'
+    cache_key: 'os-node-lockfile-hash'
     restore_keys:
-      - "os-node-"
-    
+      - 'os-node-'
+
   # Resource allocation
   resources:
-    cpu: "2 cores"
-    memory: "7 GB"
-    disk: "14 GB"
-    
+    cpu: '2 cores'
+    memory: '7 GB'
+    disk: '14 GB'
+
   # Network optimization
   network:
     parallel_downloads: true
@@ -212,21 +212,21 @@ monitoring:
   realtime:
     enabled: true
     metrics:
-      - "Task execution time"
-      - "Agent utilization"
-      - "Success/failure rates"
-      - "Resource usage"
-      
+      - 'Task execution time'
+      - 'Agent utilization'
+      - 'Success/failure rates'
+      - 'Resource usage'
+
   # Final reporting
   reporting:
     summary: true
     include:
-      - "Total agents deployed"
-      - "Tasks completed"
-      - "Success rate"
-      - "Execution time"
-      - "Artifacts generated"
-      
+      - 'Total agents deployed'
+      - 'Tasks completed'
+      - 'Success rate'
+      - 'Execution time'
+      - 'Artifacts generated'
+
   # Notifications
   notifications:
     on_success: true
@@ -239,12 +239,12 @@ failure_handling:
   retry:
     enabled: false
     max_attempts: 3
-    backoff: "exponential"
-    
+    backoff: 'exponential'
+
   # Fail fast vs continue
   fail_fast: false
   continue_on_error: true
-  
+
   # Rollback strategy
   rollback:
     enabled: false
@@ -254,30 +254,30 @@ failure_handling:
 documentation:
   description: |
     Multi-Agent Parallel Deployment System for Bruno's IMS
-    
+
     This system enables multiple agents to work in parallel, coordinated by a single leader.
     Tasks are organized by priority and executed in waves, with all agents following the
     same rules and standards.
-    
+
     Key Benefits:
     - Parallel execution reduces total deployment time
     - Leader coordination ensures proper task distribution
     - Priority-based execution maintains logical dependencies
     - Scalable to handle 1000+ agents if needed
     - All agents follow consistent rules and standards
-    
+
   usage: |
     The workflow is automatically triggered on push or pull request to main/develop branches.
     You can also manually trigger it with a custom agent count:
-    
+
     1. Go to Actions tab in GitHub
     2. Select "Multi-Agent Parallel Deployment"
     3. Click "Run workflow"
     4. Enter desired number of agents (default: 10, max recommended: 50)
-    
+
   architecture: |
     Leader-Worker Architecture:
-    
+
     [Leader] 
        ↓ (assigns tasks)
     [Priority 1 Workers] → All execute in parallel
