@@ -27,7 +27,7 @@
     "type-check:frontend": "cd frontend && tsc --noEmit",
     "docs:generate": "npm run docs:api && npm run docs:code",
     "docs:api": "swagger-jsdoc -d swaggerDef.js backend/src/**/*.ts -o docs/api.json",
-    "docs:code": "typedoc --out docs/code backend/src frontend/src",
+    "docs:code": "typedoc --skipErrorChecking --entryPointStrategy expand --out docs/code backend/src frontend/src",
     "security:audit": "npm audit --audit-level=moderate",
     "security:scan": "npm run security:audit && snyk test",
     "clean": "rimraf backend/dist frontend/dist coverage docs/api docs/code",
@@ -57,7 +57,7 @@
     "rimraf": "^5.0.5",
     "snyk": "^1.1244.0",
     "swagger-jsdoc": "^6.2.8",
-    "typedoc": "^0.25.2",
+    "typedoc": "^0.28.14",
     "typescript": "^5.2.2"
   },
   "engines": {
