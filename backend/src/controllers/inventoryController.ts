@@ -186,7 +186,7 @@ export const inventoryController = {
     },
 
     // Batch Processing Controllers
-    async batchStockMovement(req: Request, res: Response) {
+    async batchStockMovement(req: Request, res: Response): Promise<void> {
         try {
             const { movements, batchSize = 100 } = req.body;
 
@@ -242,7 +242,7 @@ export const inventoryController = {
         }
     },
 
-    async batchCreateItems(req: Request, res: Response) {
+    async batchCreateItems(req: Request, res: Response): Promise<void> {
         try {
             const { items, batchSize = 100 } = req.body;
 
