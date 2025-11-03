@@ -95,13 +95,27 @@ brunos-ims/
 // Order: node_modules → internal → relative
 import { Request, Response } from 'express';
 
-import { UserService } from '@/services/UserService';
+import { UserService } from '@/services/UserService'; // Path alias configured in tsconfig.json
 
 import { validateInput } from './validation';
 
 // Prefer named exports over default exports
 export { UserController };
 export type { IUserController };
+```
+
+**Path Aliases**: Configured in `tsconfig.json` under `compilerOptions.paths`:
+```json
+{
+  "baseUrl": "./src",
+  "paths": {
+    "@/*": ["*"],
+    "@components/*": ["components/*"],
+    "@services/*": ["services/*"],
+    "@utils/*": ["utils/*"],
+    "@types/*": ["types/*"]
+  }
+}
 ```
 
 ### TypeScript Standards
@@ -126,6 +140,23 @@ const getUserName = (user: any) => {
 - **Prettier**: All code must be formatted with Prettier
 - **Type checking**: `tsc --noEmit` must pass
 - **No console.log**: Use proper logging (Winston) - only `console.warn` and `console.error` allowed
+
+**Logging Example with Winston**:
+```typescript
+import { logger } from '@/config/logger';
+
+// Info level - general information
+logger.info('User logged in', { userId: user.id, timestamp: Date.now() });
+
+// Error level - error conditions
+logger.error('Failed to process order', { error: err.message, orderId: order.id });
+
+// Warn level - warning conditions
+logger.warn('Low inventory detected', { itemId: item.id, quantity: item.stock });
+
+// Debug level - debugging information (only in development)
+logger.debug('Processing request', { method: req.method, path: req.path });
+```
 
 ## Architecture Patterns
 
@@ -283,7 +314,12 @@ interface ApiErrorResponse {
 
 ### Encryption Standards
 - **Algorithm**: AES-256-GCM
-- **Password hashing**: bcrypt with salt rounds ≥ 12
+- **Password hashing**: bcrypt with 12 salt rounds (balance of security and performance)
+  ```typescript
+  import bcrypt from 'bcrypt';
+  const SALT_ROUNDS = 12;
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  ```
 - **Data at rest**: Encrypt PII, passwords, financial data, API keys
 - **Data in transit**: TLS 1.3+ for all communication
 
@@ -451,6 +487,8 @@ When assigned a task, the following criteria must be met before considering it c
 - [ ] PR description complete with context
 
 ## Common Patterns and Examples
+
+**Note**: Examples use path aliases (e.g., `@/controllers`, `@/services`) that are configured in `tsconfig.json`. These aliases map to directories under `src/` for cleaner imports.
 
 ### Creating a New API Endpoint
 
