@@ -55,10 +55,19 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm ci --prefer-offline --no-audit
+
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm ci --prefer-offline --no-audit
+
+      - name: Verify Tooling Versions
         run: |
-          npm ci --prefer-offline --no-audit
-          cd backend && npm ci --prefer-offline --no-audit
-          cd ../frontend && npm ci --prefer-offline --no-audit
+          node --version
+          npm --version
+          npx eslint --version
 
       - name: ESLint Backend
         run: cd backend && npm run lint
