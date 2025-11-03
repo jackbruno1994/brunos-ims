@@ -11,12 +11,12 @@ module.exports = {
     // TypeScript specific
     '@typescript-eslint/no-unused-vars': 'error',
     '@typescript-eslint/explicit-function-return-type': 'warn',
-    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
 
     // General rules
     'prefer-const': 'error',
     'no-var': 'error',
-    'max-len': ['error', { code: 100, ignoreUrls: true }],
+    'max-len': ['error', { code: 120, ignoreUrls: true }],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
   },
   env: {

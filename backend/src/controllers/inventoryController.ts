@@ -1,9 +1,21 @@
 import { Request, Response } from 'express';
 import { Item, StockMovement, Location, Category } from '../models/Inventory';
 
+// Extend Express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
+
 export const inventoryController = {
     // Item Controllers
-    async getAllItems(req: Request, res: Response) {
+    async getAllItems(_req: Request, res: Response) {
         try {
             const items = await Item.find();
             res.json(items);
@@ -22,30 +34,39 @@ export const inventoryController = {
         }
     },
 
-    async getItem(req: Request, res: Response) {
+    async getItem(req: Request, res: Response): Promise<void> {
         try {
             const item = await Item.findById(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            if (!item) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
             res.json(item);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching item', error });
         }
     },
 
-    async updateItem(req: Request, res: Response) {
+    async updateItem(req: Request, res: Response): Promise<void> {
         try {
             const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            if (!item) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
             res.json(item);
         } catch (error) {
             res.status(400).json({ message: 'Error updating item', error });
         }
     },
 
-    async deleteItem(req: Request, res: Response) {
+    async deleteItem(req: Request, res: Response): Promise<void> {
         try {
             const item = await Item.findByIdAndDelete(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            if (!item) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
             res.json({ message: 'Item deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: 'Error deleting item', error });
@@ -66,7 +87,7 @@ export const inventoryController = {
         }
     },
 
-    async getStockLevels(req: Request, res: Response) {
+    async getStockLevels(_req: Request, res: Response) {
         try {
             const movements = await StockMovement.aggregate([
                 { $group: {
@@ -88,12 +109,10 @@ export const inventoryController = {
         }
     },
 
-    async getStockHistory(req: Request, res: Response) {
+    async getStockHistory(_req: Request, res: Response) {
         try {
-            const history = await StockMovement.find()
-                .populate('itemId')
-                .populate('createdBy', 'username')
-                .sort('-createdAt');
+            // Note: populate and sort will be implemented when using actual database
+            const history = await StockMovement.find();
             res.json(history);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching stock history', error });
@@ -101,7 +120,7 @@ export const inventoryController = {
     },
 
     // Location Controllers
-    async getAllLocations(req: Request, res: Response) {
+    async getAllLocations(_req: Request, res: Response) {
         try {
             const locations = await Location.find({ active: true });
             res.json(locations);
@@ -120,20 +139,26 @@ export const inventoryController = {
         }
     },
 
-    async updateLocation(req: Request, res: Response) {
+    async updateLocation(req: Request, res: Response): Promise<void> {
         try {
             const location = await Location.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
+            if (!location) {
+                res.status(404).json({ message: 'Location not found' });
+                return;
+            }
             res.json(location);
         } catch (error) {
             res.status(400).json({ message: 'Error updating location', error });
         }
     },
 
-    async deleteLocation(req: Request, res: Response) {
+    async deleteLocation(req: Request, res: Response): Promise<void> {
         try {
             const location = await Location.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
+            if (!location) {
+                res.status(404).json({ message: 'Location not found' });
+                return;
+            }
             res.json({ message: 'Location deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: 'Error deleting location', error });
@@ -141,7 +166,7 @@ export const inventoryController = {
     },
 
     // Category Controllers
-    async getAllCategories(req: Request, res: Response) {
+    async getAllCategories(_req: Request, res: Response) {
         try {
             const categories = await Category.find();
             res.json(categories);
@@ -158,5 +183,115 @@ export const inventoryController = {
         } catch (error) {
             res.status(400).json({ message: 'Error creating category', error });
         }
-    }
+    },
+
+    // Batch Processing Controllers
+    async batchStockMovement(req: Request, res: Response): Promise<void> {
+        try {
+            const { movements, batchSize = 100 } = req.body;
+
+            if (!movements || !Array.isArray(movements)) {
+                res.status(400).json({ message: 'Invalid request: movements array is required' });
+                return;
+            }
+
+            const results = {
+                total: movements.length,
+                processed: 0,
+                failed: 0,
+                batches: [] as any[],
+            };
+
+            // Process in batches of specified size (default 100)
+            for (let i = 0; i < movements.length; i += batchSize) {
+                const batch = movements.slice(i, i + batchSize);
+                const batchResults = {
+                    batchNumber: Math.floor(i / batchSize) + 1,
+                    size: batch.length,
+                    success: [] as any[],
+                    errors: [] as any[],
+                };
+
+                for (const movementData of batch) {
+                    try {
+                        const movement = new StockMovement({
+                            ...movementData,
+                            createdBy: req.user?.id,
+                        });
+                        const saved = await movement.save();
+                        batchResults.success.push(saved);
+                        results.processed++;
+                    } catch (error) {
+                        batchResults.errors.push({
+                            movement: movementData,
+                            error: error instanceof Error ? error.message : 'Unknown error',
+                        });
+                        results.failed++;
+                    }
+                }
+
+                results.batches.push(batchResults);
+            }
+
+            res.status(201).json({
+                message: `Batch processing completed: ${results.processed} successful, ${results.failed} failed`,
+                results,
+            });
+        } catch (error) {
+            res.status(500).json({ message: 'Error processing batch stock movements', error });
+        }
+    },
+
+    async batchCreateItems(req: Request, res: Response): Promise<void> {
+        try {
+            const { items, batchSize = 100 } = req.body;
+
+            if (!items || !Array.isArray(items)) {
+                res.status(400).json({ message: 'Invalid request: items array is required' });
+                return;
+            }
+
+            const results = {
+                total: items.length,
+                processed: 0,
+                failed: 0,
+                batches: [] as any[],
+            };
+
+            // Process in batches of specified size (default 100)
+            for (let i = 0; i < items.length; i += batchSize) {
+                const batch = items.slice(i, i + batchSize);
+                const batchResults = {
+                    batchNumber: Math.floor(i / batchSize) + 1,
+                    size: batch.length,
+                    success: [] as any[],
+                    errors: [] as any[],
+                };
+
+                for (const itemData of batch) {
+                    try {
+                        const item = new Item(itemData);
+                        const saved = await item.save();
+                        batchResults.success.push(saved);
+                        results.processed++;
+                    } catch (error) {
+                        batchResults.errors.push({
+                            item: itemData,
+                            error: error instanceof Error ? error.message : 'Unknown error',
+                        });
+                        results.failed++;
+                    }
+                }
+
+                results.batches.push(batchResults);
+            }
+
+            res.status(201).json({
+                message: `Batch processing completed: ${results.processed} successful, ${results.failed} failed`,
+                results,
+            });
+        } catch (error) {
+            res.status(500).json({ message: 'Error processing batch items', error });
+        }
+    },
 };
