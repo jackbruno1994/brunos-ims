@@ -26,7 +26,11 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
+// API routes
+import routes from './routes';
+
+app.use('/api', routes);
+
 app.get('/api', (_req: Request, res: Response) => {
   res.status(200).json({
     message: "Welcome to Bruno's IMS API",
