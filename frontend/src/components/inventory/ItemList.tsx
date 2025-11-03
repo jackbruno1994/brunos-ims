@@ -18,10 +18,6 @@ const ItemList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -35,6 +31,10 @@ const ItemList: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const handleEdit = useCallback((item: Item) => {
     // Implementation for edit functionality

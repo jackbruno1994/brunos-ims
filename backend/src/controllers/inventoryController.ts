@@ -60,12 +60,12 @@ export const inventoryController = {
     try {
       // TODO: Implement database query
       // const item = await Item.findById(req.params.id);
-      const item = null;
-      if (!item) {
-        res.status(404).json({ message: 'Item not found' });
-        return;
-      }
-      res.json(item);
+      // if (!item) {
+      //   res.status(404).json({ message: 'Item not found' });
+      //   return;
+      // }
+      // res.json(item);
+      res.status(404).json({ message: 'Item not found' });
     } catch (error) {
       res.status(500).json({ message: 'Error fetching item', error });
     }
@@ -75,12 +75,12 @@ export const inventoryController = {
     try {
       // TODO: Implement database update
       // const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
-      const item = null;
-      if (!item) {
-        res.status(404).json({ message: 'Item not found' });
-        return;
-      }
-      res.json(item);
+      // if (!item) {
+      //   res.status(404).json({ message: 'Item not found' });
+      //   return;
+      // }
+      // res.json(item);
+      res.status(404).json({ message: 'Item not found' });
     } catch (error) {
       res.status(400).json({ message: 'Error updating item', error });
     }
@@ -90,12 +90,12 @@ export const inventoryController = {
     try {
       // TODO: Implement database deletion
       // const item = await Item.findByIdAndDelete(req.params.id);
-      const item = null;
-      if (!item) {
-        res.status(404).json({ message: 'Item not found' });
-        return;
-      }
-      res.json({ message: 'Item deleted successfully' });
+      // if (!item) {
+      //   res.status(404).json({ message: 'Item not found' });
+      //   return;
+      // }
+      // res.json({ message: 'Item deleted successfully' });
+      res.status(404).json({ message: 'Item not found' });
     } catch (error) {
       res.status(500).json({ message: 'Error deleting item', error });
     }
@@ -193,12 +193,12 @@ export const inventoryController = {
     try {
       // TODO: Implement database update
       // const location = await Location.findByIdAndUpdate(req.params.id, req.body, { new: true });
-      const location = null;
-      if (!location) {
-        res.status(404).json({ message: 'Location not found' });
-        return;
-      }
-      res.json(location);
+      // if (!location) {
+      //   res.status(404).json({ message: 'Location not found' });
+      //   return;
+      // }
+      // res.json(location);
+      res.status(404).json({ message: 'Location not found' });
     } catch (error) {
       res.status(400).json({ message: 'Error updating location', error });
     }
@@ -212,12 +212,12 @@ export const inventoryController = {
       //   { active: false },
       //   { new: true }
       // );
-      const location = null;
-      if (!location) {
-        res.status(404).json({ message: 'Location not found' });
-        return;
-      }
-      res.json({ message: 'Location deleted successfully' });
+      // if (!location) {
+      //   res.status(404).json({ message: 'Location not found' });
+      //   return;
+      // }
+      // res.json({ message: 'Location deleted successfully' });
+      res.status(404).json({ message: 'Location not found' });
     } catch (error) {
       res.status(500).json({ message: 'Error deleting location', error });
     }
