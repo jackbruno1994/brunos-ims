@@ -458,7 +458,7 @@ Setup Agent
 
 ## References
 
-- [Workflow Implementation](../.github/workflows/multi-agent-deploy.yml)
-- [Configuration](../.github/multi-agent-config.yml)
-- [Documentation](./MULTI_AGENT_DEPLOYMENT.md)
-- [Quick Start](./MULTI_AGENT_QUICKSTART.md)
+- [Workflow Implementation](../../.github/workflows/multi-agent-deploy.yml)
+- [Configuration](../../.github/multi-agent-config.yml)
+- [Documentation](../MULTI_AGENT_DEPLOYMENT.md)
+- [Quick Start](../MULTI_AGENT_QUICKSTART.md)

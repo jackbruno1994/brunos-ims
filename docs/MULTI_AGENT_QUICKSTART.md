@@ -244,7 +244,7 @@ tasks:
 
 ## Support
 
-- 📖 [Full Documentation](./MULTI_AGENT_DEPLOYMENT.md)
+- 📖 [Full Documentation](MULTI_AGENT_DEPLOYMENT.md)
 - 🔧 [Configuration Reference](../.github/multi-agent-config.yml)
 - 🎬 [Workflow File](../.github/workflows/multi-agent-deploy.yml)
 - 💬 [Open an Issue](https://github.com/jackbruno1994/brunos-ims/issues)

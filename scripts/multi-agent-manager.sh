@@ -255,7 +255,7 @@ try:
     print(f"\n{'═' * 60}")
     print("✨ Deployment Simulation Complete!")
     print(f"{'═' * 60}")
-    print(f"Total agents deployed: {$agent_count}")
+    print(f"Total agents deployed: $agent_count")
     print(f"Total execution time: {total_time} minutes")
     print(f"Tasks completed: {len(tasks)}")
     print(f"Average time per priority: {total_time / len(priorities):.1f} minutes")

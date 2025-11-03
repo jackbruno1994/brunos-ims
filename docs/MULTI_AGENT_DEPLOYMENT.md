@@ -330,8 +330,8 @@ env:
 
 ## Related Documentation
 
-- [GitHub Actions Workflow](./.github/workflows/multi-agent-deploy.yml)
-- [Configuration File](./.github/multi-agent-config.yml)
+- [GitHub Actions Workflow](../.github/workflows/multi-agent-deploy.yml)
+- [Configuration File](../.github/multi-agent-config.yml)
 - [CI/CD Pipeline](./CI_CD.md)
 - [Architecture Overview](./architecture/README.md)
 
