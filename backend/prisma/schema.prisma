@@ -1,0 +1,276 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management and RBAC
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String?  @unique
+  firstName    String
+  lastName     String
+  passwordHash String
+  role         Role     @default(STAFF)
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  createdItems        Item[]          @relation("ItemCreatedBy")
+  stockMovements     StockMovement[] @relation("StockMovementCreatedBy")
+  auditLogs          AuditLog[]      @relation("AuditLogCreatedBy")
+  sessions           UserSession[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// Inventory Management
+model Item {
+  id           String     @id @default(cuid())
+  sku          String     @unique
+  name         String
+  description  String?
+  categoryId   String
+  unit         String     // Base unit (kg, liters, pieces, etc.)
+  currentStock Decimal    @default(0)
+  minStock     Decimal    @default(0)
+  maxStock     Decimal?
+  costPerUnit  Decimal
+  supplierId   String?
+  locationId   String?
+  status       ItemStatus @default(ACTIVE)
+  createdById  String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  category       Category        @relation(fields: [categoryId], references: [id])
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
+  location       Location?       @relation(fields: [locationId], references: [id])
+  createdBy      User           @relation("ItemCreatedBy", fields: [createdById], references: [id])
+  stockMovements StockMovement[]
+  orderItems     OrderItem[]
+  
+  @@map("items")
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  parentId    String?
+  status      CategoryStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryParent")
+  items    Item[]
+
+  @@map("categories")
+}
+
+model Location {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  type        LocationType
+  capacity    Decimal?
+  status      LocationStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  items          Item[]
+  stockMovements StockMovement[]
+
+  @@map("locations")
+}
+
+model StockMovement {
+  id           String            @id @default(cuid())
+  itemId       String
+  type         StockMovementType
+  quantity     Decimal
+  reason       String
+  reference    String?           // PO number, invoice, etc.
+  fromLocationId String?
+  toLocationId   String?
+  costPerUnit  Decimal?
+  createdById  String
+  createdAt    DateTime          @default(now())
+
+  // Relations
+  item         Item      @relation(fields: [itemId], references: [id])
+  fromLocation Location? @relation(fields: [fromLocationId], references: [id])
+  toLocation   Location? @relation(fields: [toLocationId], references: [id])
+  createdBy    User      @relation("StockMovementCreatedBy", fields: [createdById], references: [id])
+
+  @@map("stock_movements")
+}
+
+// Supplier Management
+model Supplier {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  status      SupplierStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  items  Item[]
+  orders Order[]
+
+  @@map("suppliers")
+}
+
+// Order Processing
+model Order {
+  id           String      @id @default(cuid())
+  orderNumber  String      @unique
+  type         OrderType
+  supplierId   String?
+  status       OrderStatus @default(PENDING)
+  orderDate    DateTime    @default(now())
+  expectedDate DateTime?
+  receivedDate DateTime?
+  totalAmount  Decimal     @default(0)
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  supplier   Supplier?   @relation(fields: [supplierId], references: [id])
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  itemId       String
+  quantity     Decimal
+  unitPrice    Decimal
+  totalPrice   Decimal
+  receivedQty  Decimal @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item  Item  @relation(fields: [itemId], references: [id])
+
+  @@unique([orderId, itemId])
+  @@map("order_items")
+}
+
+// Audit Logging
+model AuditLog {
+  id          String     @id @default(cuid())
+  action      String     // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entityType  String     // User, Item, Order, etc.
+  entityId    String?    // ID of the affected entity
+  oldValues   Json?      // Previous values (for updates)
+  newValues   Json?      // New values (for creates/updates)
+  ipAddress   String?
+  userAgent   String?
+  createdById String
+  createdAt   DateTime   @default(now())
+
+  // Relations
+  createdBy User @relation("AuditLogCreatedBy", fields: [createdById], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  STAFF
+  READONLY
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ItemStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LocationStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum LocationType {
+  WAREHOUSE
+  KITCHEN
+  STORAGE
+  REFRIGERATOR
+  FREEZER
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+  TRANSFER
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderType {
+  PURCHASE
+  TRANSFER
+  PRODUCTION
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  RECEIVED
+  CANCELLED
+}
