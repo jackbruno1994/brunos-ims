@@ -44,13 +44,24 @@ export const inventoryController = {
     }
   },
 
-  async createItem(req: Request, res: Response): Promise<void> {
+  async createItem(_req: Request, res: Response): Promise<void> {
     try {
-      // TODO: Implement database insertion
-      // const item = new Item(req.body);
+      // TODO: Implement database insertion with proper validation
+      // Validate input with Joi or similar validation library
+      // const schema = Joi.object({
+      //   sku: Joi.string().required(),
+      //   name: Joi.string().required(),
+      //   category: Joi.string().required(),
+      //   currentStock: Joi.number().min(0).required(),
+      //   minStock: Joi.number().min(0).required()
+      // });
+      // const { error, value } = schema.validate(req.body);
+      // if (error) {
+      //   return res.status(400).json({ message: 'Validation error', details: error.details });
+      // }
+      // const item = new Item(value);
       // await item.save();
-      const item = { id: 'temp-id', ...req.body };
-      res.status(201).json(item);
+      res.status(201).json({ message: 'Item creation endpoint not yet implemented' });
     } catch (error) {
       res.status(400).json({ message: 'Error creating item', error });
     }
@@ -102,16 +113,23 @@ export const inventoryController = {
   },
 
   // Stock Movement Controllers
-  async recordStockMovement(req: Request, res: Response): Promise<void> {
+  async recordStockMovement(_req: Request, res: Response): Promise<void> {
     try {
-      // TODO: Implement database insertion
+      // TODO: Implement database insertion with proper validation
+      // Validate input with Joi or similar validation library
+      // const schema = Joi.object({
+      //   itemId: Joi.string().required(),
+      //   quantity: Joi.number().min(0).required(),
+      //   type: Joi.string().valid('IN', 'OUT').required()
+      // });
+      // const { error, value } = schema.validate(req.body);
+      // if (error) {
+      //   return res.status(400).json({ message: 'Validation error', details: error.details });
+      // }
       // Extract createdBy from authenticated user context when auth is implemented
-      const movement: StockMovement = {
-        id: 'temp-id',
-        ...req.body,
-        createdAt: new Date(),
-      };
-      res.status(201).json(movement);
+      // const movement = new StockMovement({ ...value, createdBy: req.user.id });
+      // await movement.save();
+      res.status(201).json({ message: 'Stock movement recording endpoint not yet implemented' });
     } catch (error) {
       res.status(400).json({ message: 'Error recording stock movement', error });
     }
@@ -177,13 +195,21 @@ export const inventoryController = {
     }
   },
 
-  async createLocation(req: Request, res: Response): Promise<void> {
+  async createLocation(_req: Request, res: Response): Promise<void> {
     try {
-      // TODO: Implement database insertion
-      // const location = new Location(req.body);
+      // TODO: Implement database insertion with proper validation
+      // Validate input with Joi or similar validation library
+      // const schema = Joi.object({
+      //   name: Joi.string().required(),
+      //   active: Joi.boolean().default(true)
+      // });
+      // const { error, value } = schema.validate(req.body);
+      // if (error) {
+      //   return res.status(400).json({ message: 'Validation error', details: error.details });
+      // }
+      // const location = new Location(value);
       // await location.save();
-      const location = { id: 'temp-id', ...req.body, active: true };
-      res.status(201).json(location);
+      res.status(201).json({ message: 'Location creation endpoint not yet implemented' });
     } catch (error) {
       res.status(400).json({ message: 'Error creating location', error });
     }
@@ -235,13 +261,20 @@ export const inventoryController = {
     }
   },
 
-  async createCategory(req: Request, res: Response): Promise<void> {
+  async createCategory(_req: Request, res: Response): Promise<void> {
     try {
-      // TODO: Implement database insertion
-      // const category = new Category(req.body);
+      // TODO: Implement database insertion with proper validation
+      // Validate input with Joi or similar validation library
+      // const schema = Joi.object({
+      //   name: Joi.string().required()
+      // });
+      // const { error, value } = schema.validate(req.body);
+      // if (error) {
+      //   return res.status(400).json({ message: 'Validation error', details: error.details });
+      // }
+      // const category = new Category(value);
       // await category.save();
-      const category = { id: 'temp-id', ...req.body };
-      res.status(201).json(category);
+      res.status(201).json({ message: 'Category creation endpoint not yet implemented' });
     } catch (error) {
       res.status(400).json({ message: 'Error creating category', error });
     }
