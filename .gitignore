@@ -193,3 +193,7 @@ local.json
 
 # Generated documentation
 *.pdf
+
+# Runtime uploads (keep directory structure but ignore files)
+backend/uploads/documents/*
+!backend/uploads/documents/.gitkeep
