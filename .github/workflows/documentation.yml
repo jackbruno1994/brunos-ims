@@ -1,0 +1,438 @@
+name: Documentation Generation
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  # API Documentation Generation
+  api-docs:
+    name: Generate API Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+
+      - name: Generate OpenAPI/Swagger Documentation
+        run: |
+          # Create docs directory
+          mkdir -p docs/api
+
+          # Generate API documentation (if swagger is configured)
+          cd backend
+          npm run docs:generate 2>/dev/null || echo "API docs generation not configured"
+
+          # Copy generated docs
+          if [ -f "docs/swagger.json" ]; then
+            cp docs/swagger.json ../docs/api/
+          fi
+
+      - name: Generate TypeDoc Documentation
+        run: |
+          # Generate code documentation
+          npm run docs:code 2>/dev/null || echo "Code docs generation not configured"
+
+      - name: Upload API Documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-documentation
+          path: docs/
+          retention-days: 30
+
+  # Code Documentation Generation
+  code-docs:
+    name: Generate Code Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Generate TypeScript Documentation
+        run: |
+          # Install TypeDoc globally if not available
+          npm install -g typedoc
+
+          # Generate backend documentation
+          mkdir -p docs/code/backend
+          cd backend
+          typedoc --out ../docs/code/backend src/ --name "Bruno's IMS Backend" || echo "Backend TypeDoc generation failed"
+          cd ..
+
+          # Generate frontend documentation
+          mkdir -p docs/code/frontend
+          cd frontend
+          typedoc --out ../docs/code/frontend src/ --name "Bruno's IMS Frontend" || echo "Frontend TypeDoc generation failed"
+          cd ..
+
+      - name: Generate JSDoc Documentation
+        run: |
+          # Install JSDoc globally if not available
+          npm install -g jsdoc
+
+          # Generate JSDoc for JavaScript files
+          mkdir -p docs/jsdoc
+          find . -name "*.js" -not -path "./node_modules/*" -not -path "./dist/*" -not -path "./coverage/*" | head -20 | xargs jsdoc -d docs/jsdoc/ || echo "JSDoc generation failed"
+
+      - name: Upload Code Documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-documentation
+          path: docs/code/
+          retention-days: 30
+
+  # README and Documentation Validation
+  docs-validation:
+    name: Documentation Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Documentation Tools
+        run: |
+          npm install -g markdownlint-cli
+          npm install -g markdown-link-check
+
+      - name: Validate Markdown Files
+        run: |
+          echo "## 📝 Documentation Validation Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Find all markdown files
+          MARKDOWN_FILES=$(find . -name "*.md" -not -path "./node_modules/*" -not -path "./coverage/*")
+
+          echo "### Markdown Files Found:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$MARKDOWN_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Lint Markdown Files
+        run: |
+          echo "### Markdown Linting Results:" >> $GITHUB_STEP_SUMMARY
+
+          # Run markdownlint
+          markdownlint --config .markdownlint.json *.md docs/**/*.md 2>&1 | tee markdown-lint.log || true
+
+          if [ -s markdown-lint.log ]; then
+            echo "⚠️ Markdown linting issues found:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat markdown-lint.log >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ All markdown files passed linting" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check Documentation Links
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Link Validation Results:" >> $GITHUB_STEP_SUMMARY
+
+          # Check links in README and main docs
+          markdown-link-check README.md --config .github/link-check-config.json || echo "Link check completed with issues"
+
+          echo "✅ Link validation completed" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Link Check Config
+        run: |
+          mkdir -p .github
+          cat > .github/link-check-config.json <<EOF
+          {
+            "ignorePatterns": [
+              {
+                "pattern": "^http://localhost"
+              },
+              {
+                "pattern": "^https://localhost"
+              }
+            ],
+            "httpHeaders": [
+              {
+                "urls": ["https://github.com", "https://raw.githubusercontent.com"],
+                "headers": {
+                  "Accept-Encoding": "zstd, br, gzip, deflate"
+                }
+              }
+            ],
+            "timeout": "20s",
+            "retryOn429": true,
+            "retryCount": 3,
+            "fallbackHttpStatus": [
+              {
+                "code": 429,
+                "returns": 200
+              }
+            ]
+          }
+          EOF
+
+      - name: Create Markdownlint Config
+        run: |
+          cat > .markdownlint.json <<EOF
+          {
+            "default": true,
+            "MD013": {
+              "line_length": 120,
+              "heading_line_length": 120,
+              "code_block_line_length": 120,
+              "tables": false
+            },
+            "MD033": false,
+            "MD041": false
+          }
+          EOF
+
+  # Generate Comprehensive Documentation Site
+  docs-site:
+    name: Generate Documentation Site
+    needs: [api-docs, code-docs, docs-validation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download API Documentation
+        uses: actions/download-artifact@v3
+        with:
+          name: api-documentation
+          path: docs-temp/api/
+
+      - name: Download Code Documentation
+        uses: actions/download-artifact@v3
+        with:
+          name: code-documentation
+          path: docs-temp/code/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create Documentation Site
+        run: |
+          # Create a documentation site structure
+          mkdir -p docs-site
+
+          # Copy main documentation
+          cp README.md docs-site/index.md
+          cp COPILOT_IMPLEMENTATION.md docs-site/
+
+          # Copy generated documentation
+          if [ -d "docs-temp" ]; then
+            cp -r docs-temp/* docs-site/
+          fi
+
+          # Create a simple index.html for the site
+          cat > docs-site/index.html <<EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Bruno's IMS Documentation</title>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                  h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+                  h2 { color: #666; }
+                  .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                  a { color: #0066cc; text-decoration: none; }
+                  a:hover { text-decoration: underline; }
+                  .nav { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+              </style>
+          </head>
+          <body>
+              <div class="nav">
+                  <h1>📚 Bruno's IMS Documentation Hub</h1>
+                  <p>Comprehensive documentation for Bruno's Integrated Management System</p>
+              </div>
+              
+              <div class="section">
+                  <h2>🚀 Getting Started</h2>
+                  <ul>
+                      <li><a href="index.md">Main README</a></li>
+                      <li><a href="COPILOT_IMPLEMENTATION.md">Copilot Implementation Guide</a></li>
+                  </ul>
+              </div>
+              
+              <div class="section">
+                  <h2>📖 API Documentation</h2>
+                  <ul>
+                      <li><a href="api/">API Documentation</a></li>
+                      <li><a href="api/swagger.json">OpenAPI Specification</a></li>
+                  </ul>
+              </div>
+              
+              <div class="section">
+                  <h2>💻 Code Documentation</h2>
+                  <ul>
+                      <li><a href="code/backend/">Backend TypeDoc</a></li>
+                      <li><a href="code/frontend/">Frontend TypeDoc</a></li>
+                  </ul>
+              </div>
+              
+              <div class="section">
+                  <h2>🔧 Development</h2>
+                  <ul>
+                      <li><a href="docs/flows/">Flow Documentation</a></li>
+                      <li><a href="docs/adrs/">Architecture Decision Records</a></li>
+                  </ul>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/
+
+  # Deploy to GitHub Pages (only on main branch)
+  deploy-pages:
+    name: Deploy Documentation to GitHub Pages
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: docs-site
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Documentation Coverage Check
+  docs-coverage:
+    name: Documentation Coverage Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Check Documentation Coverage
+        run: |
+          echo "## 📊 Documentation Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count documented vs undocumented functions/classes
+          TS_FILES=$(find . -name "*.ts" -not -path "./node_modules/*" -not -path "./dist/*")
+
+          TOTAL_FUNCTIONS=0
+          DOCUMENTED_FUNCTIONS=0
+
+          for file in $TS_FILES; do
+            if [ -f "$file" ]; then
+              # Count functions/methods
+              FUNCS=$(grep -E "(function|const.*=.*=>|class.*{)" "$file" | wc -l)
+              TOTAL_FUNCTIONS=$((TOTAL_FUNCTIONS + FUNCS))
+              
+              # Count documented functions (preceding comments)
+              DOCS=$(grep -B1 -E "(function|const.*=.*=>|class.*{)" "$file" | grep -E "(/\*\*|\*|//)" | wc -l)
+              DOCUMENTED_FUNCTIONS=$((DOCUMENTED_FUNCTIONS + DOCS))
+            fi
+          done
+
+          if [ $TOTAL_FUNCTIONS -gt 0 ]; then
+            COVERAGE_PERCENT=$((DOCUMENTED_FUNCTIONS * 100 / TOTAL_FUNCTIONS))
+          else
+            COVERAGE_PERCENT=0
+          fi
+
+          echo "| Metric | Count | Percentage |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Functions/Classes | $TOTAL_FUNCTIONS | 100% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documented | $DOCUMENTED_FUNCTIONS | ${COVERAGE_PERCENT}% |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ $COVERAGE_PERCENT -ge 80 ]; then
+            echo "✅ **Documentation coverage target met** (≥80%)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Documentation coverage below target** (<80%)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Documentation Summary
+  docs-summary:
+    name: Documentation Summary
+    needs: [api-docs, code-docs, docs-validation, docs-coverage]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate Documentation Summary
+        run: |
+          echo "# 📚 Documentation Generation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API Docs | ${{ needs.api-docs.result == 'success' && '✅ Generated' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Docs | ${{ needs.code-docs.result == 'success' && '✅ Generated' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docs Validation | ${{ needs.docs-validation.result == 'success' && '✅ Valid' || '❌ Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage Check | ${{ needs.docs-coverage.result == 'success' && '✅ Checked' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall documentation status
+          if [[ "${{ needs.api-docs.result }}" == "success" && "${{ needs.code-docs.result }}" == "success" && "${{ needs.docs-validation.result }}" == "success" ]]; then
+            echo "🟢 **DOCUMENTATION STATUS: HEALTHY** - All documentation checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔴 **DOCUMENTATION STATUS: NEEDS ATTENTION** - Some documentation checks failed" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,448 @@
+name: PR Management & Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: read
+
+jobs:
+  # Auto-labeling based on PR content
+  auto-label:
+    name: Auto Label PRs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto Label PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+
+            // Get PR files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: number
+            });
+
+            const labels = new Set();
+
+            // Determine labels based on changed files
+            for (const file of files) {
+              if (file.filename.startsWith('backend/')) {
+                labels.add('backend');
+              }
+              if (file.filename.startsWith('frontend/')) {
+                labels.add('frontend');
+              }
+              if (file.filename.startsWith('.github/workflows/')) {
+                labels.add('ci/cd');
+              }
+              if (file.filename.includes('test') || file.filename.includes('spec')) {
+                labels.add('tests');
+              }
+              if (file.filename.includes('doc') || file.filename.endsWith('.md')) {
+                labels.add('documentation');
+              }
+              if (file.filename.includes('security') || file.filename.includes('auth')) {
+                labels.add('security');
+              }
+              if (file.filename.includes('package.json') || file.filename.includes('package-lock.json')) {
+                labels.add('dependencies');
+              }
+            }
+
+            // Determine size label
+            const additions = files.reduce((sum, file) => sum + file.additions, 0);
+            const deletions = files.reduce((sum, file) => sum + file.deletions, 0);
+            const totalChanges = additions + deletions;
+
+            if (totalChanges < 10) {
+              labels.add('size/XS');
+            } else if (totalChanges < 30) {
+              labels.add('size/S');
+            } else if (totalChanges < 100) {
+              labels.add('size/M');
+            } else if (totalChanges < 500) {
+              labels.add('size/L');
+            } else {
+              labels.add('size/XL');
+            }
+
+            // Apply labels
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: number,
+                labels: Array.from(labels)
+              });
+            }
+
+  # PR Health Check
+  pr-health-check:
+    name: PR Health Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PR Health Analysis
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+
+            // Get PR details
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: number
+            });
+
+            const checks = [];
+
+            // Check PR title format
+            const titleRegex = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+$/;
+            if (titleRegex.test(pr.title)) {
+              checks.push('✅ Title follows conventional commit format');
+            } else {
+              checks.push('❌ Title should follow conventional commit format (feat: description)');
+            }
+
+            // Check PR description
+            if (pr.body && pr.body.length > 20) {
+              checks.push('✅ Description provided');
+            } else {
+              checks.push('❌ PR description is missing or too short');
+            }
+
+            // Check if PR references an issue
+            const issueRegex = /#\d+|closes #\d+|fixes #\d+|resolves #\d+/i;
+            if (issueRegex.test(pr.body || '')) {
+              checks.push('✅ References an issue');
+            } else {
+              checks.push('⚠️ Consider referencing a related issue');
+            }
+
+            // Check draft status
+            if (pr.draft) {
+              checks.push('🚧 PR is in draft mode');
+            } else {
+              checks.push('✅ PR is ready for review');
+            }
+
+            // Post health check comment
+            const healthReport = `
+            ## 🏥 PR Health Check
+
+            ${checks.map(check => `- ${check}`).join('\n')}
+
+            ---
+            *This is an automated health check. Please address any issues above.*
+            `;
+
+            // Check if health check comment already exists
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: number
+            });
+
+            const existingHealthCheck = comments.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              comment.body.includes('PR Health Check')
+            );
+
+            if (existingHealthCheck) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingHealthCheck.id,
+                body: healthReport
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: healthReport
+              });
+            }
+
+  # Automated PR Updates
+  auto-update-pr:
+    name: Auto Update PR
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request' &&
+      (github.event.action == 'synchronize' || github.event.action == 'opened')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --legacy-peer-deps
+          cd backend && npm ci --legacy-peer-deps
+          cd ../frontend && npm ci --legacy-peer-deps
+
+      - name: Auto-fix Code Issues
+        run: |
+          # Auto-fix linting issues
+          npm run lint:fix || echo "Lint fix completed with issues"
+
+          # Auto-format code
+          npm run format || echo "Format completed"
+
+      - name: Check for Changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit Auto-fixes
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "style: auto-fix code formatting and linting issues [skip ci]" || echo "No changes to commit"
+          git push
+
+  # Comment Commands Handler
+  comment-commands:
+    name: Handle Comment Commands
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request
+
+    steps:
+      - name: Handle Commands
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { number: issue_number } = context.issue;
+            const { body } = context.payload.comment;
+
+            // Only respond to specific commands
+            if (!body.startsWith('/')) return;
+
+            const command = body.toLowerCase().trim();
+
+            if (command === '/rerun-ci') {
+              // Trigger CI rerun by adding a temporary label
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: ['rerun-ci']
+              });
+              
+              // Remove the label immediately
+              setTimeout(async () => {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number,
+                  name: 'rerun-ci'
+                });
+              }, 1000);
+              
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: '🔄 CI rerun requested. Please wait for the workflows to complete.'
+              });
+            }
+
+            if (command === '/automerge') {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: ['automerge']
+              });
+              
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: '🤖 Auto-merge enabled. PR will be merged automatically once all checks pass.'
+              });
+            }
+
+            if (command === '/no-automerge') {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number,
+                  name: 'automerge'
+                });
+                
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body: '🚫 Auto-merge disabled. Manual merge required.'
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number,
+                    body: '⚠️ Auto-merge was not enabled for this PR.'
+                  });
+                }
+              }
+            }
+
+  # PR Size Warning
+  pr-size-warning:
+    name: PR Size Warning
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check PR Size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+
+            // Get PR files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: number
+            });
+
+            const additions = files.reduce((sum, file) => sum + file.additions, 0);
+            const deletions = files.reduce((sum, file) => sum + file.deletions, 0);
+            const totalChanges = additions + deletions;
+            const filesChanged = files.length;
+
+            // Warn if PR is too large
+            if (totalChanges > 500 || filesChanged > 20) {
+              const warningMessage = `
+              ## ⚠️ Large PR Warning
+              
+              This PR is quite large:
+              - **${totalChanges}** total line changes
+              - **${filesChanged}** files changed
+              
+              Consider:
+              - Breaking this into smaller PRs
+              - Ensuring thorough testing
+              - Adding detailed documentation
+              
+              Large PRs are harder to review and more likely to introduce bugs.
+              `;
+              
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: warningMessage
+              });
+            }
+
+  # Stale PR Detection
+  stale-pr-check:
+    name: Stale PR Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+
+    steps:
+      - name: Check Stale Status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+
+            // Get PR details
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: number
+            });
+
+            const lastUpdate = new Date(pr.updated_at);
+            const now = new Date();
+            const daysSinceUpdate = (now - lastUpdate) / (1000 * 60 * 60 * 24);
+
+            // If PR hasn't been updated in 7 days, add stale label
+            if (daysSinceUpdate > 7) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: number,
+                labels: ['stale']
+              });
+              
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: `
+                ## 🕰️ Stale PR Notice
+                
+                This PR has been inactive for ${Math.floor(daysSinceUpdate)} days.
+                
+                Please:
+                - Rebase with the latest main branch
+                - Address any review comments
+                - Update the PR description if needed
+                
+                The PR will be closed if no activity occurs within 14 days.
+                `
+              });
+            }
+
+  # PR Summary
+  pr-summary:
+    name: PR Management Summary
+    needs: [auto-label, pr-health-check, pr-size-warning]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'pull_request'
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 🔄 PR Management Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Task | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Auto Labeling | ${{ needs.auto-label.result == 'success' && '✅ Completed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | ${{ needs.pr-health-check.result == 'success' && '✅ Completed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Size Warning | ${{ needs.pr-size-warning.result == 'success' && '✅ Checked' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🤖 **Automated PR management is active**" >> $GITHUB_STEP_SUMMARY
