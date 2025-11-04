@@ -1,0 +1,136 @@
+// Bruno's IMS Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+  output   = "../backend/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core models for inventory management
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  firstName   String
+  lastName    String
+  role        Role     @default(STAFF)
+  restaurantId String?
+  restaurant  Restaurant? @relation(fields: [restaurantId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Restaurant {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  country   String
+  address   String
+  phone     String
+  email     String
+  status    RestaurantStatus @default(ACTIVE)
+  users     User[]
+  items     Item[]
+  locations Location[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("restaurants")
+}
+
+model Item {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  sku          String   @unique
+  category     String
+  baseUnit     String   // Base unit of measurement
+  costPerUnit  Decimal  @default(0)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  stockLevels  StockLevel[]
+  stockMovements StockMovement[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("items")
+}
+
+model Location {
+  id           String   @id @default(cuid())
+  name         String
+  type         LocationType
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  stockLevels  StockLevel[]
+  stockMovements StockMovement[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("locations")
+}
+
+model StockLevel {
+  id         String   @id @default(cuid())
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id])
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  quantity   Decimal  @default(0)
+  minLevel   Decimal  @default(0)
+  maxLevel   Decimal?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([itemId, locationId])
+  @@map("stock_levels")
+}
+
+model StockMovement {
+  id         String   @id @default(cuid())
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id])
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  type       MovementType
+  quantity   Decimal
+  costPerUnit Decimal?
+  reason     String?
+  reference  String?
+  createdAt  DateTime @default(now())
+
+  @@map("stock_movements")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum RestaurantStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum LocationType {
+  STORAGE
+  KITCHEN
+  BAR
+  WALK_IN_COOLER
+  FREEZER
+  DRY_STORAGE
+}
+
+enum MovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+  WASTE
+}
