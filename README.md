@@ -166,6 +166,8 @@ VITE_API_URL=http://localhost:3001/api
 
 ## Documentation
 
+- **[What's Next - Immediate Action Items](./NEXT_STEPS.md)** - 🔥 **START HERE** for next steps
+- **[Development Roadmap](./ROADMAP.md)** - Complete 6-phase development plan
 - [Implementation Status](./IMPLEMENTATION_STATUS.md) - **⚠️ IMPORTANT: Comprehensive functionality has been implemented in PR #62**
 - [Architecture Overview](./docs/architecture/README.md)
 
