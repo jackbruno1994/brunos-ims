@@ -1,18 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Item } from '../../types/inventory';
 
 // TODO: Install Ant Design UI library or implement custom components
 // This is a temporary stub to fix build errors
 // See ROADMAP.md Phase 2 for UI implementation plan
-
-interface Item {
-    id: string;
-    sku: string;
-    name: string;
-    category: string;
-    currentStock: number;
-    minStock: number;
-}
 
 const ItemList: React.FC = () => {
     const [items, setItems] = useState<Item[]>([]);
