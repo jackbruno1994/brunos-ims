@@ -1,63 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { Item } from '../../types/inventory';
+
+// TODO: Install Ant Design UI library or implement custom components
+// This is a temporary stub to fix build errors
+// See ROADMAP.md Phase 2 for UI implementation plan
+
+interface Item {
+    id: string;
+    sku: string;
+    name: string;
+    category: string;
+    currentStock: number;
+    minStock: number;
+}
 
 const ItemList: React.FC = () => {
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(false);
-
-    const columns = [
-        {
-            title: 'SKU',
-            dataIndex: 'sku',
-            key: 'sku',
-            sorter: (a: Item, b: Item) => a.sku.localeCompare(b.sku),
-        },
-        {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-            sorter: (a: Item, b: Item) => a.name.localeCompare(b.name),
-        },
-        {
-            title: 'Category',
-            dataIndex: 'category',
-            key: 'category',
-            filters: [
-                // Will be populated dynamically from available categories
-            ],
-            onFilter: (value: string, record: Item) => record.category === value,
-        },
-        {
-            title: 'Current Stock',
-            dataIndex: 'currentStock',
-            key: 'currentStock',
-            render: (stock: number, record: Item) => (
-                <span style={{ color: stock <= record.minStock ? 'red' : 'inherit' }}>
-                    {stock}
-                </span>
-            ),
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (text: string, record: Item) => (
-                <Space>
-                    <Button 
-                        icon={<EditOutlined />} 
-                        onClick={() => handleEdit(record)}
-                    />
-                    <Button 
-                        icon={<DeleteOutlined />} 
-                        danger 
-                        onClick={() => handleDelete(record.id)}
-                    />
-                </Space>
-            ),
-        },
-    ];
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchItems();
@@ -66,51 +26,89 @@ const ItemList: React.FC = () => {
     const fetchItems = async () => {
         try {
             setLoading(true);
+            setError(null);
             const response = await axios.get('/api/inventory/items');
-            setItems(response.data);
-        } catch (error) {
-            message.error('Failed to fetch items');
+            setItems(response.data.items || []);
+        } catch (err) {
+            setError('Failed to fetch items');
+            console.error('Error fetching items:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (item: Item) => {
-        // Implementation for edit functionality
+    const handleEdit = (_item: Item) => {
+        // TODO: Implement edit functionality
+        console.log('Edit functionality not implemented yet');
     };
 
     const handleDelete = async (id: string) => {
         try {
             await axios.delete(`/api/inventory/items/${id}`);
-            message.success('Item deleted successfully');
+            alert('Item deleted successfully');
             fetchItems();
-        } catch (error) {
-            message.error('Failed to delete item');
+        } catch (err) {
+            alert('Failed to delete item');
+            console.error('Error deleting item:', err);
         }
     };
 
+    if (loading) {
+        return <div className="loading">Loading items...</div>;
+    }
+
+    if (error) {
+        return <div className="error">{error}</div>;
+    }
+
     return (
-        <div>
-            <div style={{ marginBottom: 16 }}>
-                <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />}
-                    onClick={() => {/* Implementation for add new item */}}
+        <div className="item-list">
+            <div style={{ marginBottom: '16px' }}>
+                <button 
+                    className="btn-primary"
+                    onClick={() => console.log('Add new item functionality not implemented yet')}
                 >
-                    Add New Item
-                </Button>
+                    + Add New Item
+                </button>
             </div>
-            <Table 
-                columns={columns} 
-                dataSource={items}
-                loading={loading}
-                rowKey="id"
-                pagination={{
-                    defaultPageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Total ${total} items`
-                }}
-            />
+            <table className="items-table">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Current Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items.length === 0 ? (
+                        <tr>
+                            <td colSpan={5} style={{ textAlign: 'center' }}>
+                                No items found. Database implementation pending.
+                            </td>
+                        </tr>
+                    ) : (
+                        items.map((item) => (
+                            <tr key={item.id}>
+                                <td>{item.sku}</td>
+                                <td>{item.name}</td>
+                                <td>{item.category}</td>
+                                <td style={{ color: item.currentStock <= item.minStock ? 'red' : 'inherit' }}>
+                                    {item.currentStock}
+                                </td>
+                                <td>
+                                    <button onClick={() => handleEdit(item)}>Edit</button>
+                                    <button onClick={() => handleDelete(item.id)}>Delete</button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </table>
+            <div style={{ marginTop: '16px' }}>
+                Total {items.length} items
+            </div>
         </div>
     );
 };
