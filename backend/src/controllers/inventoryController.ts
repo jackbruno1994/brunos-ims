@@ -1,51 +1,66 @@
 import { Request, Response } from 'express';
-import { Item, StockMovement, Location, Category } from '../models/Inventory';
+
+// Placeholder data until database is connected
+const mockItems: any[] = [];
+const mockStockMovements: any[] = [];
+const mockLocations: any[] = [];
+const mockCategories: any[] = [];
 
 export const inventoryController = {
     // Item Controllers
-    async getAllItems(req: Request, res: Response) {
+    async getAllItems(_req: Request, res: Response): Promise<void> {
         try {
-            const items = await Item.find();
-            res.json(items);
+            res.json(mockItems);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching items', error });
         }
     },
 
-    async createItem(req: Request, res: Response) {
+    async createItem(req: Request, res: Response): Promise<void> {
         try {
-            const item = new Item(req.body);
-            await item.save();
+            const item = { id: Date.now().toString(), ...req.body };
+            mockItems.push(item);
             res.status(201).json(item);
         } catch (error) {
             res.status(400).json({ message: 'Error creating item', error });
         }
     },
 
-    async getItem(req: Request, res: Response) {
+    async getItem(req: Request, res: Response): Promise<void> {
         try {
-            const item = await Item.findById(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            const item = mockItems.find(i => i.id === req.params.id);
+            if (!item) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
             res.json(item);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching item', error });
         }
     },
 
-    async updateItem(req: Request, res: Response) {
+    async updateItem(req: Request, res: Response): Promise<void> {
         try {
-            const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!item) return res.status(404).json({ message: 'Item not found' });
-            res.json(item);
+            const index = mockItems.findIndex(i => i.id === req.params.id);
+            if (index === -1) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
+            mockItems[index] = { ...mockItems[index], ...req.body };
+            res.json(mockItems[index]);
         } catch (error) {
             res.status(400).json({ message: 'Error updating item', error });
         }
     },
 
-    async deleteItem(req: Request, res: Response) {
+    async deleteItem(req: Request, res: Response): Promise<void> {
         try {
-            const item = await Item.findByIdAndDelete(req.params.id);
-            if (!item) return res.status(404).json({ message: 'Item not found' });
+            const index = mockItems.findIndex(i => i.id === req.params.id);
+            if (index === -1) {
+                res.status(404).json({ message: 'Item not found' });
+                return;
+            }
+            mockItems.splice(index, 1);
             res.json({ message: 'Item deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: 'Error deleting item', error });
@@ -53,47 +68,41 @@ export const inventoryController = {
     },
 
     // Stock Movement Controllers
-    async recordStockMovement(req: Request, res: Response) {
+    async recordStockMovement(req: Request, res: Response): Promise<void> {
         try {
-            const movement = new StockMovement({
+            const movement = {
+                id: Date.now().toString(),
                 ...req.body,
-                createdBy: req.user?.id
-            });
-            await movement.save();
+                createdAt: new Date()
+            };
+            mockStockMovements.push(movement);
             res.status(201).json(movement);
         } catch (error) {
             res.status(400).json({ message: 'Error recording stock movement', error });
         }
     },
 
-    async getStockLevels(req: Request, res: Response) {
+    async getStockLevels(_req: Request, res: Response): Promise<void> {
         try {
-            const movements = await StockMovement.aggregate([
-                { $group: {
-                    _id: '$itemId',
-                    totalStock: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$type', 'IN'] },
-                                '$quantity',
-                                { $multiply: ['$quantity', -1] }
-                            ]
-                        }
-                    }
-                }}
-            ]);
-            res.json(movements);
+            // Simplified mock aggregation
+            const stockLevels = mockStockMovements.reduce((acc: any, movement: any) => {
+                if (!acc[movement.itemId]) {
+                    acc[movement.itemId] = 0;
+                }
+                acc[movement.itemId] += movement.type === 'IN' ? movement.quantity : -movement.quantity;
+                return acc;
+            }, {});
+            res.json(stockLevels);
         } catch (error) {
             res.status(500).json({ message: 'Error calculating stock levels', error });
         }
     },
 
-    async getStockHistory(req: Request, res: Response) {
+    async getStockHistory(_req: Request, res: Response): Promise<void> {
         try {
-            const history = await StockMovement.find()
-                .populate('itemId')
-                .populate('createdBy', 'username')
-                .sort('-createdAt');
+            const history = mockStockMovements.sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
             res.json(history);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching stock history', error });
@@ -101,39 +110,47 @@ export const inventoryController = {
     },
 
     // Location Controllers
-    async getAllLocations(req: Request, res: Response) {
+    async getAllLocations(_req: Request, res: Response): Promise<void> {
         try {
-            const locations = await Location.find({ active: true });
+            const locations = mockLocations.filter(l => l.active !== false);
             res.json(locations);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching locations', error });
         }
     },
 
-    async createLocation(req: Request, res: Response) {
+    async createLocation(req: Request, res: Response): Promise<void> {
         try {
-            const location = new Location(req.body);
-            await location.save();
+            const location = { id: Date.now().toString(), ...req.body, active: true };
+            mockLocations.push(location);
             res.status(201).json(location);
         } catch (error) {
             res.status(400).json({ message: 'Error creating location', error });
         }
     },
 
-    async updateLocation(req: Request, res: Response) {
+    async updateLocation(req: Request, res: Response): Promise<void> {
         try {
-            const location = await Location.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
-            res.json(location);
+            const index = mockLocations.findIndex(l => l.id === req.params.id);
+            if (index === -1) {
+                res.status(404).json({ message: 'Location not found' });
+                return;
+            }
+            mockLocations[index] = { ...mockLocations[index], ...req.body };
+            res.json(mockLocations[index]);
         } catch (error) {
             res.status(400).json({ message: 'Error updating location', error });
         }
     },
 
-    async deleteLocation(req: Request, res: Response) {
+    async deleteLocation(req: Request, res: Response): Promise<void> {
         try {
-            const location = await Location.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
-            if (!location) return res.status(404).json({ message: 'Location not found' });
+            const index = mockLocations.findIndex(l => l.id === req.params.id);
+            if (index === -1) {
+                res.status(404).json({ message: 'Location not found' });
+                return;
+            }
+            mockLocations[index].active = false;
             res.json({ message: 'Location deleted successfully' });
         } catch (error) {
             res.status(500).json({ message: 'Error deleting location', error });
@@ -141,19 +158,18 @@ export const inventoryController = {
     },
 
     // Category Controllers
-    async getAllCategories(req: Request, res: Response) {
+    async getAllCategories(_req: Request, res: Response): Promise<void> {
         try {
-            const categories = await Category.find();
-            res.json(categories);
+            res.json(mockCategories);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching categories', error });
         }
     },
 
-    async createCategory(req: Request, res: Response) {
+    async createCategory(req: Request, res: Response): Promise<void> {
         try {
-            const category = new Category(req.body);
-            await category.save();
+            const category = { id: Date.now().toString(), ...req.body };
+            mockCategories.push(category);
             res.status(201).json(category);
         } catch (error) {
             res.status(400).json({ message: 'Error creating category', error });

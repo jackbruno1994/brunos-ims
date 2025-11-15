@@ -17,9 +17,9 @@
     "test:watch": "npm run test -- --watch",
     "test:e2e": "playwright test",
     "lint": "npm run lint:backend && npm run lint:frontend",
-    "lint:backend": "cd backend && eslint src --ext .ts",
-    "lint:frontend": "cd frontend && eslint src --ext .ts,.tsx",
-    "lint:fix": "npm run lint -- --fix",
+    "lint:backend": "eslint backend/src --ext .ts",
+    "lint:frontend": "eslint frontend/src --ext .ts,.tsx",
+    "lint:fix": "npm run lint:backend -- --fix && npm run lint:frontend -- --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "type-check": "npm run type-check:backend && npm run type-check:frontend",
@@ -57,8 +57,8 @@
     "rimraf": "^5.0.5",
     "snyk": "^1.1244.0",
     "swagger-jsdoc": "^6.2.8",
-    "typedoc": "^0.25.2",
-    "typescript": "^5.2.2"
+    "typedoc": "^0.28.9",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.0.0",

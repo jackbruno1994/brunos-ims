@@ -1,63 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { Item } from '../../types/inventory';
+
+interface Item {
+    id: string;
+    sku: string;
+    name: string;
+    category: string;
+    currentStock: number;
+    minStock: number;
+}
 
 const ItemList: React.FC = () => {
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(false);
-
-    const columns = [
-        {
-            title: 'SKU',
-            dataIndex: 'sku',
-            key: 'sku',
-            sorter: (a: Item, b: Item) => a.sku.localeCompare(b.sku),
-        },
-        {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-            sorter: (a: Item, b: Item) => a.name.localeCompare(b.name),
-        },
-        {
-            title: 'Category',
-            dataIndex: 'category',
-            key: 'category',
-            filters: [
-                // Will be populated dynamically from available categories
-            ],
-            onFilter: (value: string, record: Item) => record.category === value,
-        },
-        {
-            title: 'Current Stock',
-            dataIndex: 'currentStock',
-            key: 'currentStock',
-            render: (stock: number, record: Item) => (
-                <span style={{ color: stock <= record.minStock ? 'red' : 'inherit' }}>
-                    {stock}
-                </span>
-            ),
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (text: string, record: Item) => (
-                <Space>
-                    <Button 
-                        icon={<EditOutlined />} 
-                        onClick={() => handleEdit(record)}
-                    />
-                    <Button 
-                        icon={<DeleteOutlined />} 
-                        danger 
-                        onClick={() => handleDelete(record.id)}
-                    />
-                </Space>
-            ),
-        },
-    ];
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchItems();
@@ -66,51 +22,90 @@ const ItemList: React.FC = () => {
     const fetchItems = async () => {
         try {
             setLoading(true);
+            setError(null);
             const response = await axios.get('/api/inventory/items');
             setItems(response.data);
-        } catch (error) {
-            message.error('Failed to fetch items');
+        } catch (err) {
+            setError('Failed to fetch items');
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
     const handleEdit = (item: Item) => {
+        console.log('Edit item:', item);
         // Implementation for edit functionality
     };
 
     const handleDelete = async (id: string) => {
         try {
             await axios.delete(`/api/inventory/items/${id}`);
-            message.success('Item deleted successfully');
+            alert('Item deleted successfully');
             fetchItems();
-        } catch (error) {
-            message.error('Failed to delete item');
+        } catch (err) {
+            alert('Failed to delete item');
+            console.error(err);
         }
     };
 
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div style={{ color: 'red' }}>{error}</div>;
+    }
+
     return (
         <div>
-            <div style={{ marginBottom: 16 }}>
-                <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />}
-                    onClick={() => {/* Implementation for add new item */}}
+            <div style={{ marginBottom: '16px' }}>
+                <button 
+                    onClick={() => console.log('Add new item')}
                 >
                     Add New Item
-                </Button>
+                </button>
             </div>
-            <Table 
-                columns={columns} 
-                dataSource={items}
-                loading={loading}
-                rowKey="id"
-                pagination={{
-                    defaultPageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Total ${total} items`
-                }}
-            />
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                    <tr>
+                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>SKU</th>
+                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Name</th>
+                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Category</th>
+                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Current Stock</th>
+                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items.map((item) => (
+                        <tr key={item.id}>
+                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.sku}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.name}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.category}</td>
+                            <td 
+                                style={{ 
+                                    border: '1px solid #ddd', 
+                                    padding: '8px',
+                                    color: item.currentStock <= item.minStock ? 'red' : 'inherit'
+                                }}
+                            >
+                                {item.currentStock}
+                            </td>
+                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                                <button onClick={() => handleEdit(item)} style={{ marginRight: '4px' }}>
+                                    Edit
+                                </button>
+                                <button onClick={() => handleDelete(item.id)} style={{ color: 'red' }}>
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            {items.length === 0 && !loading && (
+                <div style={{ padding: '20px', textAlign: 'center' }}>No items found</div>
+            )}
         </div>
     );
 };
