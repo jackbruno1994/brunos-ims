@@ -60,20 +60,14 @@ jobs:
           cd backend && npm ci --prefer-offline --no-audit
           cd ../frontend && npm ci --prefer-offline --no-audit
 
-      - name: ESLint Backend
-        run: cd backend && npm run lint
-
-      - name: ESLint Frontend
-        run: cd frontend && npm run lint
+      - name: ESLint
+        run: npm run lint
 
       - name: Prettier Check
         run: npm run format:check
 
-      - name: TypeScript Compilation Backend
-        run: cd backend && npm run type-check
-
-      - name: TypeScript Compilation Frontend
-        run: cd frontend && npm run type-check
+      - name: TypeScript Compilation
+        run: npm run type-check
 
       - name: Dependency Audit
         run: |
@@ -117,12 +111,12 @@ jobs:
           cd ../frontend && npm ci --prefer-offline --no-audit
 
       - name: Backend Tests
-        run: cd backend && npm test || echo "Backend tests not configured yet"
+        run: cd backend && npm test -- --passWithNoTests || echo "Backend tests not configured yet"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/brunos_ims_test
 
       - name: Frontend Tests
-        run: cd frontend && npm test || echo "Frontend tests not configured yet"
+        run: cd frontend && npm test -- --run || echo "Frontend tests not configured yet"
 
   # Security Scanning
   security:
@@ -190,11 +184,8 @@ jobs:
           cd backend && npm ci --prefer-offline --no-audit
           cd ../frontend && npm ci --prefer-offline --no-audit
 
-      - name: Build Backend
-        run: cd backend && npm run build
-
-      - name: Build Frontend
-        run: cd frontend && npm run build
+      - name: Build
+        run: npm run build
 
       - name: Archive Backend Build
         uses: actions/upload-artifact@v3
