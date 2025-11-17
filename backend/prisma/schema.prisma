@@ -1,0 +1,326 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core entities based on the domain requirements from setup script
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String
+  lastName  String
+  role      UserRole @default(STAFF)
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  stockMovements StockMovement[]
+  
+  @@map("users")
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  status    SupplierStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items     Item[]
+  purchaseOrders PurchaseOrder[]
+  
+  @@map("suppliers")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String   @unique
+  baseUom     String   // Base unit of measure
+  categoryId  String?
+  supplierId  String?
+  status      ItemStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  category      Category? @relation(fields: [categoryId], references: [id])
+  stockMovements StockMovement[]
+  conversions   UomConversion[]
+  recipeItems   RecipeItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  
+  @@map("items")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items     Item[]
+  
+  @@map("categories")
+}
+
+model UomConversion {
+  id         String   @id @default(cuid())
+  itemId     String
+  fromUom    String
+  toUom      String
+  factor     Float    // Conversion factor (1 fromUom = factor * toUom)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  item       Item     @relation(fields: [itemId], references: [id])
+  
+  @@unique([itemId, fromUom, toUom])
+  @@map("uom_conversions")
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  type      LocationType
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  stockMovementsFrom StockMovement[] @relation("FromLocation")
+  stockMovementsTo   StockMovement[] @relation("ToLocation")
+  counts            StockCount[]
+  
+  @@map("locations")
+}
+
+model StockMovement {
+  id           String   @id @default(cuid())
+  itemId       String
+  qtyBase      Float    // Quantity in base units
+  costPerBase  Float?   // Cost per base unit
+  fromLocationId String?
+  toLocationId   String?
+  reason       MovementReason
+  reference    String?  // PO number, recipe batch, etc.
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  item         Item      @relation(fields: [itemId], references: [id])
+  fromLocation Location? @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocation   Location? @relation("ToLocation", fields: [toLocationId], references: [id])
+  createdBy    User      @relation(fields: [createdById], references: [id])
+  
+  @@map("stock_moves")
+}
+
+model PurchaseOrder {
+  id         String   @id @default(cuid())
+  poNumber   String   @unique
+  supplierId String
+  status     PurchaseOrderStatus @default(DRAFT)
+  orderDate  DateTime @default(now())
+  totalAmount Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  items      PurchaseOrderItem[]
+  receipts   Receipt[]
+  
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id            String   @id @default(cuid())
+  purchaseOrderId String
+  itemId        String
+  qtyOrdered    Float
+  qtyReceived   Float    @default(0)
+  unitPrice     Float
+  totalPrice    Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  item          Item          @relation(fields: [itemId], references: [id])
+  
+  @@map("purchase_order_items")
+}
+
+model Receipt {
+  id            String   @id @default(cuid())
+  purchaseOrderId String
+  receiptNumber String   @unique
+  receivedDate  DateTime @default(now())
+  totalAmount   Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  
+  @@map("receipts")
+}
+
+model Recipe {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  yieldUom    String   // Unit of measure for yield
+  yieldQtyBase Float   // Yield quantity in base units
+  status      RecipeStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  items       RecipeItem[]
+  batches     ProductionBatch[]
+  
+  @@map("recipes")
+}
+
+model RecipeItem {
+  id        String   @id @default(cuid())
+  recipeId  String
+  itemId    String
+  qtyBase   Float    // Quantity required in base units
+  lossPct   Float    @default(0) // Expected loss percentage
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  recipe    Recipe   @relation(fields: [recipeId], references: [id])
+  item      Item     @relation(fields: [itemId], references: [id])
+  
+  @@map("recipe_items")
+}
+
+model ProductionBatch {
+  id              String   @id @default(cuid())
+  recipeId        String
+  batchNumber     String   @unique
+  producedQtyBase Float
+  status          BatchStatus @default(PLANNED)
+  scheduledDate   DateTime
+  completedDate   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  recipe          Recipe   @relation(fields: [recipeId], references: [id])
+  
+  @@map("batches")
+}
+
+model StockCount {
+  id         String   @id @default(cuid())
+  locationId String
+  itemId     String
+  qtyBase    Float    // Counted quantity in base units
+  countDate  DateTime @default(now())
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  location   Location @relation(fields: [locationId], references: [id])
+  
+  @@map("counts")
+}
+
+model WastageLog {
+  id        String   @id @default(cuid())
+  itemId    String
+  qtyBase   Float    // Wasted quantity in base units
+  reason    String
+  cost      Float?   // Cost of wasted items
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("wastage_logs")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ItemStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum LocationType {
+  WAREHOUSE
+  KITCHEN
+  STORAGE
+  COOLER
+  FREEZER
+}
+
+enum MovementReason {
+  PURCHASE_RECEIPT
+  PRODUCTION_CONSUMPTION
+  PRODUCTION_OUTPUT
+  TRANSFER
+  ADJUSTMENT
+  WASTE
+  RETURN
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  FULLY_RECEIVED
+  CANCELLED
+}
+
+enum RecipeStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum BatchStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
