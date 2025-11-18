@@ -3,6 +3,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
+import { 
+  globalErrorHandler, 
+  notFoundHandler, 
+  validationErrorHandler,
+  requestLogger 
+} from './middleware/errorHandler';
 
 // Load environment variables
 dotenv.config();
@@ -16,6 +23,7 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
 // Basic health check route
 app.get('/health', (_req: Request, res: Response) => {
@@ -26,30 +34,15 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-app.get('/api', (_req: Request, res: Response) => {
-  res.status(200).json({
-    message: "Welcome to Bruno's IMS API",
-    version: '1.0.0',
-  });
-});
+// API routes
+app.use('/api', routes);
 
-// 404 handler
-app.use('*', (req: Request, res: Response) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.originalUrl,
-  });
-});
+// Error handling middleware (order matters!)
+app.use(validationErrorHandler);
+app.use(globalErrorHandler);
 
-// Error handler
-app.use((err: Error, _req: Request, res: Response, _next: any) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-  });
-});
+// 404 handler - must be last
+app.use('*', notFoundHandler);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
