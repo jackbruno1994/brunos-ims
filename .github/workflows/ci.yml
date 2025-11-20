@@ -21,6 +21,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Setup Python
+  uses: actions/setup-python@v4
+  with:
+    python-version: '3.11'
+      
+      - name: Cache pip
+  uses: actions/cache@v4
+  with:
+    path: ~/.cache/pip
+    key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements.txt') }}
+    restore-keys: ${{ runner.os }}-pip-
+
+- name: Install Python dependencies & package
+  run: |
+    python -m pip install --upgrade pip setuptools wheel
+    if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    pip install -e .
+  shell: bash
+
+- name: Run Python tests
+  run: |
+    export PYTHONPATH="$PWD"
+    pytest -q
+  shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
