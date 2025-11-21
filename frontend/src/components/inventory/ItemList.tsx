@@ -28,7 +28,7 @@ const ItemList: React.FC = () => {
             filters: [
                 // Will be populated dynamically from available categories
             ],
-            onFilter: (value: string, record: Item) => record.category === value,
+            onFilter: (value: boolean | React.Key, record: Item) => record.category === value,
         },
         {
             title: 'Current Stock',
@@ -43,7 +43,7 @@ const ItemList: React.FC = () => {
         {
             title: 'Actions',
             key: 'actions',
-            render: (text: string, record: Item) => (
+            render: (_text: string, record: Item) => (
                 <Space>
                     <Button 
                         icon={<EditOutlined />} 
@@ -75,7 +75,7 @@ const ItemList: React.FC = () => {
         }
     };
 
-    const handleEdit = (item: Item) => {
+    const handleEdit = (_item: Item) => {
         // Implementation for edit functionality
     };
 
@@ -108,7 +108,7 @@ const ItemList: React.FC = () => {
                 pagination={{
                     defaultPageSize: 10,
                     showSizeChanger: true,
-                    showTotal: (total) => `Total ${total} items`
+                    showTotal: (total: number) => `Total ${total} items`
                 }}
             />
         </div>
