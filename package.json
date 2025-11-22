@@ -31,7 +31,13 @@
     "security:audit": "npm audit --audit-level=moderate",
     "security:scan": "npm run security:audit && snyk test",
     "clean": "rimraf backend/dist frontend/dist coverage docs/api docs/code",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "db:generate": "cd backend && npm run db:generate",
+    "db:migrate": "cd backend && npm run db:migrate",
+    "db:deploy": "cd backend && npm run db:deploy",
+    "db:seed": "cd backend && npm run db:seed",
+    "db:studio": "cd backend && npm run db:studio",
+    "db:reset": "cd backend && npm run db:reset"
   },
   "workspaces": [
     "backend",
