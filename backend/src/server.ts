@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import routes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -31,8 +32,16 @@ app.get('/api', (_req: Request, res: Response) => {
   res.status(200).json({
     message: "Welcome to Bruno's IMS API",
     version: '1.0.0',
+    endpoints: {
+      'Purchase Orders': '/api/purchase-orders',
+      'Restaurants': '/api/restaurants',
+      'Health Check': '/health'
+    }
   });
 });
+
+// Use API routes
+app.use('/api', routes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
@@ -55,6 +64,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
+  console.log(`📍 Purchase Orders: http://localhost:${PORT}/api/purchase-orders`);
 });
 
 export default app;
