@@ -2,7 +2,9 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
+import healthRoutes from './routes/health';
+import { DatabaseMonitor } from './utils/monitoring';
 
 // Load environment variables
 dotenv.config();
@@ -17,14 +19,8 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Basic health check route
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'OK',
-    message: "Bruno's IMS Backend API is running",
-    timestamp: new Date().toISOString(),
-  });
-});
+// Health check routes
+app.use('/', healthRoutes);
 
 // API routes will be added here
 app.get('/api', (_req: Request, res: Response) => {
@@ -55,6 +51,23 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
+  
+  // Start database monitoring
+  const monitor = new DatabaseMonitor();
+  monitor.startMonitoring(30000); // Check every 30 seconds
+  
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    monitor.stopMonitoring();
+    process.exit(0);
+  });
+  
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    monitor.stopMonitoring();
+    process.exit(0);
+  });
 });
 
 export default app;
