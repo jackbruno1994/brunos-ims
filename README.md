@@ -20,7 +20,9 @@ Bruno's IMS is a comprehensive management system designed to handle operations a
 
 - **Node.js** with **Express.js** framework
 - **TypeScript** for type safety
+- **PostgreSQL** database with **Prisma ORM**
 - RESTful API design
+- Database connection pooling and retry mechanisms
 - Security middleware (Helmet, CORS)
 - Environment-based configuration
 
@@ -60,6 +62,7 @@ brunos-ims/
 
 - **Node.js** (v18 or higher)
 - **npm** or **yarn**
+- **PostgreSQL** (v12 or higher)
 
 ### Installation
 
@@ -70,7 +73,14 @@ brunos-ims/
    cd brunos-ims
    ```
 
-2. **Set up the Backend**
+2. **Set up PostgreSQL Database**
+
+   ```bash
+   # Create database (adjust credentials as needed)
+   createdb brunos_ims
+   ```
+
+3. **Set up the Backend**
 
    ```bash
    cd backend
@@ -78,7 +88,13 @@ brunos-ims/
 
    # Copy environment file and configure
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your database configuration
+
+   # Generate Prisma client
+   npm run db:generate
+
+   # Run database migrations
+   npm run db:migrate
 
    # Build the project
    npm run build
@@ -87,7 +103,7 @@ brunos-ims/
    npm run dev
    ```
 
-3. **Set up the Frontend**
+4. **Set up the Frontend**
 
    ```bash
    cd ../frontend
@@ -96,6 +112,18 @@ brunos-ims/
    # Start development server
    npm run dev
    ```
+
+### Database Setup
+
+The application uses PostgreSQL with Prisma ORM. For detailed database setup instructions, see [backend/DATABASE_SETUP.md](backend/DATABASE_SETUP.md).
+
+**Quick start:**
+```bash
+cd backend
+npm run db:generate  # Generate Prisma client
+npm run db:migrate   # Create and apply migrations
+npm run db:seed      # (Optional) Seed initial data
+```
 
 ### Development
 
