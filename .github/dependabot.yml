@@ -1,0 +1,108 @@
+# Dependabot configuration for automated dependency management
+# Updates npm packages for root, backend, and frontend
+version: 2
+updates:
+  # Root package dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'jackbruno1994'
+    assignees:
+      - 'jackbruno1994'
+    commit-message:
+      prefix: 'deps'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'automerge'
+    # Group minor and patch updates
+    groups:
+      development-dependencies:
+        patterns:
+          - '@types/*'
+          - 'eslint*'
+          - 'prettier'
+          - '@typescript-eslint/*'
+          - 'husky'
+          - 'lint-staged'
+        update-types:
+          - 'minor'
+          - 'patch'
+      testing-dependencies:
+        patterns:
+          - 'jest*'
+          - '@testing-library/*'
+          - 'vitest*'
+          - 'playwright'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # Backend dependencies
+  - package-ecosystem: 'npm'
+    directory: '/backend'
+    schedule:
+      interval: 'weekly'
+      day: 'tuesday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'jackbruno1994'
+    assignees:
+      - 'jackbruno1994'
+    commit-message:
+      prefix: 'deps(backend)'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'backend'
+      - 'automerge'
+
+  # Frontend dependencies
+  - package-ecosystem: 'npm'
+    directory: '/frontend'
+    schedule:
+      interval: 'weekly'
+      day: 'wednesday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'jackbruno1994'
+    assignees:
+      - 'jackbruno1994'
+    commit-message:
+      prefix: 'deps(frontend)'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'frontend'
+      - 'automerge'
+
+  # GitHub Actions dependencies
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'thursday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 3
+    reviewers:
+      - 'jackbruno1994'
+    assignees:
+      - 'jackbruno1994'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+      - 'automerge'
