@@ -53,13 +53,13 @@ jobs:
           cache: 'npm'
 
       - name: Install Root Dependencies
-        run: npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
 
       - name: Install Backend Dependencies
-        run: cd backend && npm ci --prefer-offline --no-audit
+        run: cd backend && npm ci --prefer-offline --no-audit --legacy-peer-deps
 
       - name: Install Frontend Dependencies
-        run: cd frontend && npm ci --prefer-offline --no-audit
+        run: cd frontend && npm ci --prefer-offline --no-audit --legacy-peer-deps
 
   # Code Quality & Linting
   quality:
@@ -80,9 +80,15 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci --prefer-offline --no-audit
-          cd backend && npm ci --prefer-offline --no-audit
-          cd ../frontend && npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd backend && npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd ../frontend && npm ci --prefer-offline --no-audit --legacy-peer-deps
+
+      - name: Verify Environment
+        run: |
+          node --version
+          npm --version
+          npx eslint --version
 
       - name: ESLint Backend
         run: cd backend && npm run lint
@@ -136,9 +142,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci --prefer-offline --no-audit
-          cd backend && npm ci --prefer-offline --no-audit
-          cd ../frontend && npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd backend && npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd ../frontend && npm ci --prefer-offline --no-audit --legacy-peer-deps
 
       - name: Backend Tests
         run: cd backend && npm test || echo "Backend tests not configured yet"
@@ -172,9 +178,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci --prefer-offline --no-audit
-          cd backend && npm ci --prefer-offline --no-audit
-          cd ../frontend && npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd backend && npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd ../frontend && npm ci --prefer-offline --no-audit --legacy-peer-deps
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
@@ -210,9 +216,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci --prefer-offline --no-audit
-          cd backend && npm ci --prefer-offline --no-audit
-          cd ../frontend && npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd backend && npm ci --prefer-offline --no-audit --legacy-peer-deps
+          cd ../frontend && npm ci --prefer-offline --no-audit --legacy-peer-deps
 
       - name: Build Backend
         run: cd backend && npm run build
